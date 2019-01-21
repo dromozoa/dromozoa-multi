@@ -21,16 +21,17 @@
 
 namespace dromozoa {
   namespace {
+    thread* check_thread(lua_State* L, int arg) {
+      return luaX_check_udata<thread>(L, arg, "dromozoa.multi.thread");
+    }
     void* start_routine(void* arg) {
       state_handle that(static_cast<lua_State*>(arg));
-      if (lua_pcall(that.get(), 0, 0, 0) != 0) {
+      int nargs = lua_tonumber(that.get(), -1);
+      lua_pop(that.get(), 1);
+      if (lua_pcall(that.get(), nargs, 0, 0) != 0) {
         DROMOZOA_UNEXPECTED(lua_tostring(that.get(), -1));
       }
       return 0;
-    }
-
-    thread* check_thread(lua_State* L, int arg) {
-      return luaX_check_udata<thread>(L, arg, "dromozoa.multi.thread");
     }
 
     void impl_gc(lua_State* L) {
@@ -39,19 +40,53 @@ namespace dromozoa {
 
     void impl_call(lua_State* L) {
       state_handle* that = check_state_handle(L, 2);
-      luaX_new<thread>(L, start_routine, that->get());
-      that->release();
-      luaX_set_metatable(L, "dromozoa.multi.thread");
+
+      int top = lua_gettop(L);
+      for (int i = 3; i <= top; ++i) {
+        switch (lua_type(L, i)) {
+          case LUA_TNIL:
+            luaX_push(that->get(), luaX_nil);
+            break;
+          case LUA_TNUMBER:
+            luaX_push(that->get(), lua_tonumber(L, i));
+            break;
+          case LUA_TBOOLEAN:
+            luaX_push(that->get(), lua_toboolean(L, i));
+            break;
+          case LUA_TSTRING:
+            luaX_push(that->get(), luaX_to_string(L, i));
+            break;
+          default:
+            luaL_argerror(L, i, "nil/number/boolean/string expected");
+        }
+      }
+      luaX_push(that->get(), top - 2);
+
+      try {
+        luaX_new<thread>(L, start_routine, that->get());
+        that->release();
+        luaX_set_metatable(L, "dromozoa.multi.thread");
+      } catch (const system_error& e) {
+        luaX_throw_failure(e.what(), e.code());
+      }
     }
 
     void impl_detach(lua_State* L) {
-      check_thread(L, 1)->detach();
-      luaX_push_success(L);
+      try {
+        check_thread(L, 1)->detach();
+        luaX_push_success(L);
+      } catch (const system_error& e) {
+        luaX_throw_failure(e.what(), e.code());
+      }
     }
 
     void impl_join(lua_State* L) {
-      check_thread(L, 1)->join();
-      luaX_push_success(L);
+      try {
+        check_thread(L, 1)->join();
+        luaX_push_success(L);
+      } catch (const system_error& e) {
+        luaX_throw_failure(e.what(), e.code());
+      }
     }
   }
 
