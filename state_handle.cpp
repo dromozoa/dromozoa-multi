@@ -18,15 +18,21 @@
 #include "common.hpp"
 
 namespace dromozoa {
-  void initialize_state(lua_State*);
+  state_handle::state_handle(lua_State* state) : state_(state) {}
 
-  void initialize(lua_State* L) {
-    initialize_state(L);
+  state_handle::~state_handle() {
+    if (state_) {
+      lua_close(state_);
+    }
   }
-}
 
-extern "C" int luaopen_dromozoa_multi(lua_State* L) {
-  lua_newtable(L);
-  dromozoa::initialize(L);
-  return 1;
+  lua_State* state_handle::get() const {
+    return state_;
+  }
+
+  lua_State* state_handle::release() {
+    lua_State* state = state_;
+    state_ = 0;
+    return state;
+  }
 }

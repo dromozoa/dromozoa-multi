@@ -20,4 +20,21 @@
 
 #include <dromozoa/bind.hpp>
 
+namespace dromozoa {
+  class state_handle {
+  public:
+    explicit state_handle(lua_State*);
+    ~state_handle();
+    lua_State* get() const;
+    lua_State* release();
+  private:
+    lua_State* state_;
+    state_handle(const state_handle&);
+    state_handle& operator=(const state_handle&);
+  };
+
+  state_handle* check_state_handle(lua_State*, int);
+  lua_State* check_state(lua_State*, int);
+}
+
 #endif
