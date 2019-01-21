@@ -1,3 +1,5 @@
+#! /bin/sh -e
+
 # Copyright (C) 2019 Tomoyuki Fujimori <moyu@dromozoa.com>
 #
 # This file is part of dromozoa-multi.
@@ -15,24 +17,10 @@
 # You should have received a copy of the GNU General Public License
 # along with dromozoa-multi.  If not, see <http://www.gnu.org/licenses/>.
 
-ACLOCAL_AMFLAGS = -I m4
-
-EXTRA_DIST = \
-	.gitignore \
-	README.md \
-	bind \
-	docs \
-	dromozoa-multi-*.rockspec \
-	m4/update \
-	test \
-	$(TESTS)
-TESTS = test.sh
-
-luaexec_LTLIBRARIES = multi.la
-
-noinst_HEADERS = common.hpp
-
-multi_la_CPPFLAGS = -I$(top_srcdir)/bind
-multi_la_LDFLAGS = -module -avoid-version -shared
-multi_la_SOURCES = \
-	module.cpp
+for i in test/test*.lua
+do
+  case X$# in
+    X0) lua "$i";;
+    *) "$@" "$i";;
+  esac
+done
