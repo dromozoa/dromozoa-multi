@@ -18,5 +18,6 @@
 #ifndef DROMOZOA_COMMON_HPP
 #define DROMOZOA_COMMON_HPP
 
+#include <dromozoa/bind.hpp>
 
 #endif
