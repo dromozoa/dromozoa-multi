@@ -16,3 +16,29 @@
 -- along with dromozoa-multi.  If not, see <http://www.gnu.org/licenses/>.
 
 local multi = require "dromozoa.multi"
+
+local s1 = multi.state()
+s1:openlibs()
+s1:loadbuffer [[
+local unix = require "dromozoa.unix"
+unix.nanosleep(0.4)
+print "s1"
+]]
+
+local s2 = multi.state()
+s2:openlibs()
+s2:loadbuffer [[
+local unix = require "dromozoa.unix"
+unix.nanosleep(0.2)
+print "s2"
+]]
+
+print "start"
+
+local t1 = multi.thread(s1)
+local t2 = multi.thread(s2)
+
+print "t2.join"
+t2:join()
+print "t1.join"
+t1:join()

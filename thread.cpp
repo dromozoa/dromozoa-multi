@@ -19,10 +19,10 @@
 
 namespace dromozoa {
   namespace {
-    void* start_routine(void* that) {
-      lua_State* L = static_cast<lua_State*>(that);
-      if (lua_pcall(L, 0, 0, 0) != 0) {
-        DROMOZOA_UNEXPECTED(lua_tostring(L, -1));
+    void* start_routine(void* data) {
+      state_handle that(static_cast<lua_State*>(data));
+      if (lua_pcall(that.get(), 0, 0, 0) != 0) {
+        DROMOZOA_UNEXPECTED(lua_tostring(that.get(), -1));
       }
       return 0;
     }
