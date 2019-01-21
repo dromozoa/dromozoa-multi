@@ -28,9 +28,11 @@ namespace dromozoa {
     }
 
     void impl_call(lua_State* L) {
-      if (lua_State* self = luaL_newstate()) {
-        luaL_openlibs(self);
-        luaX_new<state_handle>(L, self);
+      state_handle self(luaL_newstate());
+      if (self.get()) {
+        luaL_openlibs(self.get());
+        luaX_new<state_handle>(L, self.get());
+        self.release();
         luaX_set_metatable(L, "dromozoa.multi.state");
       } else {
         luaX_throw_failure("cannot luaL_newstate");

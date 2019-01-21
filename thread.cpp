@@ -17,6 +17,8 @@
 
 #include "common.hpp"
 
+#include <dromozoa/bind/thread.hpp>
+
 namespace dromozoa {
   namespace {
     void* start_routine(void* arg) {
@@ -38,8 +40,8 @@ namespace dromozoa {
     void impl_call(lua_State* L) {
       state_handle* that = check_state_handle(L, 2);
       luaX_new<thread>(L, start_routine, that->get());
-      luaX_set_metatable(L, "dromozoa.multi.thread");
       that->release();
+      luaX_set_metatable(L, "dromozoa.multi.thread");
     }
 
     void impl_detach(lua_State* L) {
