@@ -32,12 +32,13 @@ namespace dromozoa {
         luaX_new<state_handle>(L, state);
         luaX_set_metatable(L, "dromozoa.multi.state");
       } else {
-        luaX_push(L, luaX_nil, "could not luaL_newstate");
+        luaX_throw_failure("cannot luaL_newstate");
       }
     }
 
     void impl_openlibs(lua_State* L) {
-      luaL_openlibs(check_state(L, 1));
+      lua_State* state = check_state(L, 1);
+      luaL_openlibs(state);
       luaX_push_success(L);
     }
 
@@ -52,7 +53,7 @@ namespace dromozoa {
       if (result == 0) {
         luaX_push_success(L);
       } else {
-        luaX_push(L, luaX_nil, "could not luaL_loadbuffer", result);
+        luaX_throw_failure("cannot luaL_loadbuffer", result);
       }
     }
 
@@ -63,7 +64,7 @@ namespace dromozoa {
       if (result == 0) {
         luaX_push_success(L);
       } else {
-        luaX_push(L, luaX_nil, "could not luaL_loadfile", result);
+        luaX_throw_failure("cannot luaL_loadfile", result);
       }
     }
   }

@@ -37,4 +37,5 @@ multi_la_LDFLAGS = -module -avoid-version -shared
 multi_la_SOURCES = \
 	state.cpp \
 	state_handle.cpp \
-	module.cpp
+	module.cpp \
+	thread.cpp
