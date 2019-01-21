@@ -19,8 +19,8 @@
 
 namespace dromozoa {
   namespace {
-    void* start_routine(void* data) {
-      state_handle that(static_cast<lua_State*>(data));
+    void* start_routine(void* arg) {
+      state_handle that(static_cast<lua_State*>(arg));
       if (lua_pcall(that.get(), 0, 0, 0) != 0) {
         DROMOZOA_UNEXPECTED(lua_tostring(that.get(), -1));
       }
@@ -43,14 +43,12 @@ namespace dromozoa {
     }
 
     void impl_detach(lua_State* L) {
-      thread* self = check_thread(L, 1);
-      self->detach();
+      check_thread(L, 1)->detach();
       luaX_push_success(L);
     }
 
     void impl_join(lua_State* L) {
-      thread* self = check_thread(L, 1);
-      self->join();
+      check_thread(L, 1)->join();
       luaX_push_success(L);
     }
   }
