@@ -18,7 +18,6 @@
 local multi = require "dromozoa.multi"
 
 local s1 = multi.state()
-s1:openlibs()
 s1:loadbuffer [[
 local unix = require "dromozoa.unix"
 unix.nanosleep(0.4)
@@ -26,7 +25,6 @@ print "s1"
 ]]
 
 local s2 = multi.state()
-s2:openlibs()
 s2:loadbuffer [[
 local unix = require "dromozoa.unix"
 unix.nanosleep(0.2)
