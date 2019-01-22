@@ -18,7 +18,7 @@
 CPPFLAGS += -I$(LUA_INCDIR)
 CXXFLAGS += -Wall -W $(CFLAGS)
 LDFLAGS += -L$(LUA_LIBDIR) $(LIBFLAG)
-LDLIBS += -ldl
+LDLIBS += -lpthread -ldl
 
 OBJS = \
 	callback.o \

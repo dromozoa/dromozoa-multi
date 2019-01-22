@@ -21,6 +21,7 @@
 #include <pthread.h>
 
 #include <exception>
+#include <iostream>
 #include <utility>
 
 #include "system_error.hpp"
@@ -29,6 +30,20 @@ namespace dromozoa {
   namespace bind {
     class thread {
     public:
+      class id {
+      public:
+        id() : thread_() {}
+
+        explicit id(pthread_t thread) : thread_(thread) {}
+
+        friend std::ostream& operator<<(std::ostream& out, const id& self) {
+          return out << self.thread_;
+        }
+
+      private:
+        pthread_t thread_;
+      };
+
       thread(void* (*start_routine)(void*), void* arg) : thread_(), joinable_() {
         if (int result = pthread_create(&thread_, 0, start_routine, arg)) {
           throw system_error(result);
@@ -60,6 +75,10 @@ namespace dromozoa {
         joinable_ = false;
       }
 
+      id get_id() const {
+        return id(thread_);
+      }
+
       pthread_t native_handle() {
         return thread_;
       }
@@ -75,9 +94,16 @@ namespace dromozoa {
       thread(const thread&);
       thread& operator=(const thread&);
     };
+
+    namespace this_thread {
+      inline thread::id get_id() {
+        return thread::id(pthread_self());
+      }
+    }
   }
 
   using bind::thread;
+  namespace this_thread = bind::this_thread;
 }
 
 #endif

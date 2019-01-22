@@ -70,6 +70,13 @@ namespace dromozoa {
         luaX_throw_failure("cannot luaL_loadfile", result);
       }
     }
+
+    void impl_id(lua_State* L) {
+      lua_State* self = check_state(L, 1);
+      std::ostringstream out;
+      out << self;
+      luaX_push(L, out.str());
+    }
   }
 
   state_handle* check_state_handle(lua_State* L, int arg) {
@@ -92,6 +99,7 @@ namespace dromozoa {
       luaX_set_metafield(L, -1, "__call", impl_call);
       luaX_set_field(L, -1, "load", impl_load);
       luaX_set_field(L, -1, "loadfile", impl_loadfile);
+      luaX_set_field(L, -1, "id", impl_id);
     }
     luaX_set_field(L, -2, "state");
   }
