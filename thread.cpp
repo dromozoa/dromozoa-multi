@@ -17,6 +17,8 @@
 
 #include "common.hpp"
 
+#include <sstream>
+
 #include <dromozoa/bind/thread.hpp>
 
 namespace dromozoa {
@@ -95,6 +97,13 @@ namespace dromozoa {
         luaX_throw_failure(e.what(), e.code());
       }
     }
+
+    void impl_id(lua_State* L) {
+      thread* self = check_thread(L, 1);
+      std::ostringstream out;
+      out << self->get_id();
+      luaX_push(L, out.str());
+    }
   }
 
   void initialize_thread(lua_State* L) {
@@ -109,6 +118,7 @@ namespace dromozoa {
       luaX_set_metafield(L, -1, "__call", impl_call);
       luaX_set_field(L, -1, "detach", impl_detach);
       luaX_set_field(L, -1, "join", impl_join);
+      luaX_set_field(L, -1, "id", impl_id);
     }
     luaX_set_field(L, -2, "thread");
   }

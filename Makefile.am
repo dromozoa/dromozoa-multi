@@ -35,6 +35,7 @@ noinst_HEADERS = common.hpp
 multi_la_CPPFLAGS = -I$(top_srcdir)/bind
 multi_la_LDFLAGS = -module -avoid-version -shared
 multi_la_SOURCES = \
+	main.cpp \
 	state.cpp \
 	state_handle.cpp \
 	module.cpp \
