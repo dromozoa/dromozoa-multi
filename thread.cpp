@@ -44,25 +44,31 @@ namespace dromozoa {
         luaX_throw_failure("invalid state");
       }
       int top = lua_gettop(L);
+      int n = 0;
       for (int i = 3; i <= top; ++i) {
         switch (lua_type(L, i)) {
           case LUA_TNIL:
             luaX_push(that->get(), luaX_nil);
+            ++n;
             break;
           case LUA_TNUMBER:
             luaX_push(that->get(), lua_tonumber(L, i));
+            ++n;
             break;
           case LUA_TBOOLEAN:
             luaX_push(that->get(), lua_toboolean(L, i));
+            ++n;
             break;
           case LUA_TSTRING:
             luaX_push(that->get(), luaX_to_string(L, i));
+            ++n;
             break;
           default:
+            lua_pop(that->get(), n);
             luaL_argerror(L, i, "nil/number/boolean/string expected");
         }
       }
-      luaX_push(that->get(), top - 2);
+      luaX_push(that->get(), n);
       try {
         luaX_new<thread>(L, start_routine, that->get());
         that->release();

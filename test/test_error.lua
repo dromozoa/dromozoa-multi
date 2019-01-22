@@ -36,3 +36,34 @@ end
 assert(not result)
 assert(code)
 assert(code ~= 0)
+
+local s = multi.state():load [[
+local token = ...
+local out = assert(io.open("test.txt", "w"))
+out:write(token)
+out:close()
+]]
+local result, message = pcall(function ()
+  multi.thread(s, 42, {})
+end)
+if verbose then
+  print(message)
+end
+assert(not result)
+
+local token = os.date "%Y-%m-%d %H:%M:%S"
+local t = multi.thread(s, token)
+
+local result, message = multi.thread(s)
+if verbose then
+  print(message)
+end
+assert(not result)
+
+assert(t:join())
+
+local handle = assert(io.open("test.txt"))
+assert(handle:read "*a" == token)
+handle:close()
+
+os.remove "test.txt"

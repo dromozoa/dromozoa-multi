@@ -24,3 +24,5 @@ do
     *) "$@" "$i";;
   esac
 done
+
+rm -f test.txt
