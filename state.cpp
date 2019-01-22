@@ -28,28 +28,28 @@ namespace dromozoa {
     }
 
     void impl_call(lua_State* L) {
-      if (lua_State* state = luaL_newstate()) {
-        luaX_new<state_handle>(L, state);
+      state_handle self(luaL_newstate());
+      if (self.get()) {
+        luaL_openlibs(self.get());
+        luaX_new<state_handle>(L, self.get());
+        self.release();
         luaX_set_metatable(L, "dromozoa.multi.state");
       } else {
         luaX_throw_failure("cannot luaL_newstate");
       }
     }
 
-    void impl_openlibs(lua_State* L) {
-      lua_State* state = check_state(L, 1);
-      luaL_openlibs(state);
-      luaX_push_success(L);
-    }
-
-    void impl_loadbuffer(lua_State* L) {
-      lua_State* state = check_state(L, 1);
+    void impl_load(lua_State* L) {
+      lua_State* self = check_state(L, 1);
+      if (!self) {
+        luaX_throw_failure("invalid state");
+      }
       luaX_string_reference chunk = luaX_check_string(L, 2);
       luaX_string_reference name;
       if (!lua_isnoneornil(L, 3)) {
         name = luaX_check_string(L, 3);
       }
-      int result = luaL_loadbuffer(state, chunk.data(), chunk.size(), name.data());
+      int result = luaL_loadbuffer(self, chunk.data(), chunk.size(), name.data());
       if (result == 0) {
         luaX_push_success(L);
       } else {
@@ -58,9 +58,12 @@ namespace dromozoa {
     }
 
     void impl_loadfile(lua_State* L) {
-      lua_State* state = check_state(L, 1);
+      lua_State* self = check_state(L, 1);
+      if (!self) {
+        luaX_throw_failure("invalid state");
+      }
       luaX_string_reference filename = luaX_check_string(L, 2);
-      int result = luaL_loadfile(state, filename.data());
+      int result = luaL_loadfile(self, filename.data());
       if (result == 0) {
         luaX_push_success(L);
       } else {
@@ -87,8 +90,7 @@ namespace dromozoa {
       lua_pop(L, 1);
 
       luaX_set_metafield(L, -1, "__call", impl_call);
-      luaX_set_field(L, -1, "openlibs", impl_openlibs);
-      luaX_set_field(L, -1, "loadbuffer", impl_loadbuffer);
+      luaX_set_field(L, -1, "load", impl_load);
       luaX_set_field(L, -1, "loadfile", impl_loadfile);
     }
     luaX_set_field(L, -2, "state");

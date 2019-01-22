@@ -19,7 +19,6 @@
 #define DROMOZOA_COMMON_HPP
 
 #include <dromozoa/bind.hpp>
-#include <dromozoa/bind/thread.hpp>
 
 namespace dromozoa {
   class state_handle {
