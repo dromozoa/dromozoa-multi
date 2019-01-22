@@ -17,20 +17,27 @@
 
 #include "common.hpp"
 
+#include <sstream>
+
+#include <dromozoa/bind/thread.hpp>
+
 namespace dromozoa {
-  void initialize_main(lua_State*);
-  void initialize_state(lua_State*);
-  void initialize_thread(lua_State*);
+  namespace {
+    void impl_this_thread_id(lua_State* L) {
+      std::ostringstream out;
+      out << this_thread::get_id();
+      luaX_push(L, out.str());
+    }
 
-  void initialize(lua_State* L) {
-    initialize_main(L);
-    initialize_state(L);
-    initialize_thread(L);
+    void impl_this_state_id(lua_State* L) {
+      std::ostringstream out;
+      out << L;
+      luaX_push(L, out.str());
+    }
   }
-}
 
-extern "C" int luaopen_dromozoa_multi(lua_State* L) {
-  lua_newtable(L);
-  dromozoa::initialize(L);
-  return 1;
+  void initialize_main(lua_State* L) {
+    luaX_set_field(L, -1, "this_thread_id", impl_this_thread_id);
+    luaX_set_field(L, -1, "this_state_id", impl_this_state_id);
+  }
 }
