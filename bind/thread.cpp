@@ -16,6 +16,7 @@
 // along with dromozoa-bind.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <iostream>
+#include <sstream>
 
 #include "dromozoa/bind.hpp"
 #include "dromozoa/bind/thread.hpp"
@@ -69,6 +70,18 @@ namespace dromozoa {
       thread t2(f2, 0);
       thread t3(f3, 0);
       thread t4(f4, 0);
+
+      std::ostringstream out;
+      out << this_thread::get_id() << "\n"
+          << t1.get_id() << "\n"
+          << t2.get_id() << "\n"
+          << t3.get_id() << "\n"
+          << t4.get_id() << "\n";
+
+      if (verbose()) {
+        std::cout << out.str();
+      }
+
       t1.join();
       t2.join();
       t3.join();
