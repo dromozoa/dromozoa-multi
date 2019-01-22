@@ -65,6 +65,9 @@ namespace dromozoa {
             luaX_push(that->get(), luaX_to_string(L, i));
             ++n;
             break;
+          case LUA_TLIGHTUSERDATA:
+            lua_pushlightuserdata(that->get(), lua_touserdata(L, i));
+            break;
           default:
             lua_pop(that->get(), n);
             luaL_argerror(L, i, "nil/number/boolean/string expected");
