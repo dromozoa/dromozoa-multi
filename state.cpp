@@ -41,6 +41,9 @@ namespace dromozoa {
 
     void impl_loadbuffer(lua_State* L) {
       lua_State* self = check_state(L, 1);
+      if (!self) {
+        luaX_throw_failure("invalid state");
+      }
       luaX_string_reference chunk = luaX_check_string(L, 2);
       luaX_string_reference name;
       if (!lua_isnoneornil(L, 3)) {
@@ -56,6 +59,9 @@ namespace dromozoa {
 
     void impl_loadfile(lua_State* L) {
       lua_State* self = check_state(L, 1);
+      if (!self) {
+        luaX_throw_failure("invalid state");
+      }
       luaX_string_reference filename = luaX_check_string(L, 2);
       int result = luaL_loadfile(self, filename.data());
       if (result == 0) {

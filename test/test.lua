@@ -17,26 +17,23 @@
 
 local multi = require "dromozoa.multi"
 
-local s1 = multi.state()
-s1:loadbuffer [[
+local chunk = [[
 local unix = require "dromozoa.unix"
-unix.nanosleep(0.4)
-print "s1"
+
+local n, t, v1, v2, v3 = ...
+unix.nanosleep(t)
+print(n, t, v1, v2, v3)
 ]]
 
-local s2 = multi.state()
-s2:loadbuffer [[
-local unix = require "dromozoa.unix"
-unix.nanosleep(0.2)
-print "s2"
-]]
+local s1 = assert(multi.state():loadbuffer(chunk))
+local s2 = assert(multi.state():loadbuffer(chunk))
 
 print "start"
-
-local t1 = multi.thread(s1)
-local t2 = multi.thread(s2)
+local t1 = assert(multi.thread(s1, 1, 0.4, nil, true, "foo"))
+local t2 = assert(multi.thread(s2, 2, 0.2, false, "bar"))
 
 print "t2.join"
 t2:join()
+
 print "t1.join"
 t1:join()

@@ -40,7 +40,9 @@ namespace dromozoa {
 
     void impl_call(lua_State* L) {
       state_handle* that = check_state_handle(L, 2);
-
+      if (!that->get()) {
+        luaX_throw_failure("invalid state");
+      }
       int top = lua_gettop(L);
       for (int i = 3; i <= top; ++i) {
         switch (lua_type(L, i)) {
@@ -61,7 +63,6 @@ namespace dromozoa {
         }
       }
       luaX_push(that->get(), top - 2);
-
       try {
         luaX_new<thread>(L, start_routine, that->get());
         that->release();
