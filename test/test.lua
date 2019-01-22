@@ -25,8 +25,8 @@ unix.nanosleep(t)
 print(n, t, v1, v2, v3)
 ]]
 
-local s1 = assert(multi.state():loadbuffer(chunk))
-local s2 = assert(multi.state():loadbuffer(chunk))
+local s1 = assert(multi.state():load(chunk))
+local s2 = assert(multi.state():load(chunk))
 
 print "start"
 local t1 = assert(multi.thread(s1, 1, 0.4, nil, true, "foo"))

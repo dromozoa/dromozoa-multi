@@ -39,7 +39,7 @@ namespace dromozoa {
       }
     }
 
-    void impl_loadbuffer(lua_State* L) {
+    void impl_load(lua_State* L) {
       lua_State* self = check_state(L, 1);
       if (!self) {
         luaX_throw_failure("invalid state");
@@ -90,7 +90,7 @@ namespace dromozoa {
       lua_pop(L, 1);
 
       luaX_set_metafield(L, -1, "__call", impl_call);
-      luaX_set_field(L, -1, "loadbuffer", impl_loadbuffer);
+      luaX_set_field(L, -1, "load", impl_load);
       luaX_set_field(L, -1, "loadfile", impl_loadfile);
     }
     luaX_set_field(L, -2, "state");
