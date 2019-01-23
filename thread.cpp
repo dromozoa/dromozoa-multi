@@ -67,10 +67,12 @@ namespace dromozoa {
             break;
           case LUA_TLIGHTUSERDATA:
             lua_pushlightuserdata(that->get(), lua_touserdata(L, i));
+            ++n;
             break;
           default:
             lua_pop(that->get(), n);
             luaL_argerror(L, i, "nil/number/boolean/string expected");
+            return;
         }
       }
       luaX_push(that->get(), n);
