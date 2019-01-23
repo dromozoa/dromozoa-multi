@@ -67,6 +67,7 @@ namespace dromozoa {
             break;
           case LUA_TLIGHTUSERDATA:
             lua_pushlightuserdata(that->get(), lua_touserdata(L, i));
+            ++n;
             break;
           default:
             lua_pop(that->get(), n);
