@@ -71,7 +71,7 @@ namespace dromozoa {
             break;
           default:
             lua_pop(that->get(), n);
-            luaL_argerror(L, i, "nil/number/boolean/string expected");
+            luaL_argerror(L, i, "nil/number/boolean/string/lightuserdata expected");
             return;
         }
       }
