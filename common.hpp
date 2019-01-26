@@ -27,6 +27,7 @@ namespace dromozoa {
     ~state_handle();
     lua_State* get() const;
     lua_State* release();
+    int xcopy(lua_State*, int);
   private:
     lua_State* state_;
     state_handle(const state_handle&);

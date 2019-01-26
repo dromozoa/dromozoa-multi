@@ -35,4 +35,33 @@ namespace dromozoa {
     state_ = 0;
     return state;
   }
+
+  int state_handle::xcopy(lua_State* L, int arg) {
+    int top = lua_gettop(L);
+    for (int i = arg; i <= top; ++i) {
+      switch (lua_type(L, i)) {
+        case LUA_TNIL:
+          luaX_push(state_, luaX_nil);
+          break;
+        case LUA_TNUMBER:
+          luaX_push(state_, lua_tonumber(L, i));
+          break;
+        case LUA_TBOOLEAN:
+          luaX_push(state_, lua_toboolean(L, i));
+          break;
+        case LUA_TSTRING:
+          luaX_push(state_, luaX_to_string(L, i));
+          break;
+        case LUA_TLIGHTUSERDATA:
+          lua_pushlightuserdata(state_, lua_touserdata(L, i));
+          break;
+        default:
+          if (i > arg) {
+            lua_pop(state_, i - arg);
+          }
+          return luaL_argerror(L, i, "nil/number/boolean/string/lightuserdata expected");
+      }
+    }
+    return top - arg + 1;
+  }
 }
