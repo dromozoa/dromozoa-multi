@@ -26,6 +26,7 @@ namespace dromozoa {
     thread* check_thread(lua_State* L, int arg) {
       return luaX_check_udata<thread>(L, arg, "dromozoa.multi.thread");
     }
+
     void* start_routine(void* arg) {
       state_handle that(static_cast<lua_State*>(arg));
       int nargs = lua_tonumber(that.get(), -1);
@@ -45,37 +46,8 @@ namespace dromozoa {
       if (!that->get()) {
         luaX_throw_failure("invalid state");
       }
-      int top = lua_gettop(L);
-      int n = 0;
-      for (int i = 3; i <= top; ++i) {
-        switch (lua_type(L, i)) {
-          case LUA_TNIL:
-            luaX_push(that->get(), luaX_nil);
-            ++n;
-            break;
-          case LUA_TNUMBER:
-            luaX_push(that->get(), lua_tonumber(L, i));
-            ++n;
-            break;
-          case LUA_TBOOLEAN:
-            luaX_push(that->get(), lua_toboolean(L, i));
-            ++n;
-            break;
-          case LUA_TSTRING:
-            luaX_push(that->get(), luaX_to_string(L, i));
-            ++n;
-            break;
-          case LUA_TLIGHTUSERDATA:
-            lua_pushlightuserdata(that->get(), lua_touserdata(L, i));
-            ++n;
-            break;
-          default:
-            lua_pop(that->get(), n);
-            luaL_argerror(L, i, "nil/number/boolean/string/lightuserdata expected");
-            return;
-        }
-      }
-      luaX_push(that->get(), n);
+      int nargs = that->xcopy(L, 3);
+      luaX_push(that->get(), nargs);
       try {
         luaX_new<thread>(L, start_routine, that->get());
         that->release();
