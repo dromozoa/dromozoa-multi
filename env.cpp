@@ -44,10 +44,11 @@ namespace dromozoa {
 
     class value {
     public:
-      value() : type_(LUA_TNIL) {}
+      value() : type_(LUA_TNONE) {}
 
-      value(lua_State* L, int arg) : type_(LUA_TNIL) {
-        switch (lua_type(L, arg)) {
+      value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
+        switch (type_) {
+          case LUA_TNONE:
           case LUA_TNIL:
             break;
           case LUA_TBOOLEAN:
@@ -70,12 +71,13 @@ namespace dromozoa {
         }
       }
 
-      bool isnil() const {
-        return type_ == LUA_TNIL;
+      bool isnoneornil() const {
+        return type_ == LUA_TNONE || type_ == LUA_TNIL;
       }
 
       void push(lua_State* L) const {
         switch (type_) {
+          case LUA_TNONE:
           case LUA_TNIL:
             luaX_push(L, luaX_nil);
             break;
@@ -101,6 +103,7 @@ namespace dromozoa {
           return type_ < that.type_;
         }
         switch (type_) {
+          case LUA_TNONE:
           case LUA_TNIL:
             return false;
           case LUA_TBOOLEAN:
@@ -133,12 +136,12 @@ namespace dromozoa {
       try {
         value k = value(L, 1);
         value v = value(L, 2);
-        if (k.isnil()) {
+        if (k.isnoneornil()) {
           throw value_error(1, "table index is nil");
         }
 
         lock_guard<> lock(env_mutex);
-        if (v.isnil()) {
+        if (v.isnoneornil()) {
           env_map.erase(k);
         } else {
           env_map[k] = v;
