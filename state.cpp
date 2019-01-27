@@ -39,18 +39,6 @@ namespace dromozoa {
       }
     }
 
-    void impl_get(lua_State* L) {
-      lua_pushlightuserdata(L, check_state_handle(L, 1)->get());
-    }
-
-    void impl_release(lua_State* L) {
-      lua_pushlightuserdata(L, check_state_handle(L, 1)->release());
-    }
-
-    void impl_xcopy(lua_State* L) {
-      luaX_push(L, check_state_handle(L, 1)->xcopy(L, 2));
-    }
-
     void impl_load(lua_State* L) {
       lua_State* self = check_state(L, 1);
       if (!self) {
@@ -109,9 +97,6 @@ namespace dromozoa {
       lua_pop(L, 1);
 
       luaX_set_metafield(L, -1, "__call", impl_call);
-      luaX_set_field(L, -1, "get", impl_get);
-      luaX_set_field(L, -1, "release", impl_release);
-      luaX_set_field(L, -1, "xcopy", impl_xcopy);
       luaX_set_field(L, -1, "load", impl_load);
       luaX_set_field(L, -1, "loadfile", impl_loadfile);
       luaX_set_field(L, -1, "id", impl_id);
