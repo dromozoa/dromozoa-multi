@@ -25,6 +25,25 @@
 
 <h1>dromozoa-multi</h1>
 
+<h2>環境</h2>
+
+<pre>
+local multi = require "dromozoa.multi"
+lcoal env = multi.env
+
+-- set
+env.key = value
+multi.set("key", value)
+
+-- delete
+env.key = nil
+multi.set "key"
+
+-- get
+print(env.key)
+print(multi.get "key")
+</pre>
+
 </div>
 </body>
 </html>
