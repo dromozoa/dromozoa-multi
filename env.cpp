@@ -25,19 +25,21 @@
 
 namespace dromozoa {
   namespace {
-    class value_error : std::exception {
+    class value_error {
     public:
-      value_error(int arg, const char* what) : arg_(arg), what_(what) {}
+      value_error(int arg, const char* msg) : arg_(arg), msg_(msg) {}
 
-      virtual ~value_error() throw() {}
+      int arg() const {
+        return arg_;
+      }
 
-      virtual const char* what() const throw() {
-        return what_;
+      const char* msg() const {
+        return msg_;
       }
 
     private:
       int arg_;
-      const char* what_;
+      const char* msg_;
     };
 
     class value {
@@ -70,6 +72,28 @@ namespace dromozoa {
 
       bool isnil() const {
         return type_ == LUA_TNIL;
+      }
+
+      void push(lua_State* L) const {
+        switch (type_) {
+          case LUA_TNIL:
+            luaX_push(L, luaX_nil);
+            break;
+          case LUA_TBOOLEAN:
+            luaX_push(L, boolean_);
+            break;
+          case LUA_TNUMBER:
+            luaX_push(L, number_);
+            break;
+          case LUA_TSTRING:
+            luaX_push(L, string_);
+            break;
+          case LUA_TLIGHTUSERDATA:
+            lua_pushlightuserdata(L, userdata_);
+            break;
+          default:
+            throw std::logic_error("unreachable code");
+        }
       }
 
       bool operator<(const value& that) const {
@@ -106,21 +130,39 @@ namespace dromozoa {
     std::map<value, value> env_map;
 
     void impl_set(lua_State* L) {
-      value k;
-      value v;
       try {
-        k = value(L, 1);
-        v = value(L, 2);
-      } catch (const value_error&) {
-      }
-
+        value k = value(L, 1);
+        value v = value(L, 2);
         if (k.isnil()) {
-          luaL_argerror(L, 1, "index is nil");
+          throw value_error(1, "table index is nil");
         }
 
+        lock_guard<> lock(env_mutex);
+        if (v.isnil()) {
+          env_map.erase(k);
+        } else {
+          env_map[k] = v;
+        }
+        luaX_push_success(L);
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
     }
 
     void impl_get(lua_State* L) {
+      try {
+        value k = value(L, 1);
+
+        lock_guard<> lock(env_mutex);
+        std::map<value, value>::const_iterator i = env_map.find(k);
+        if (i == env_map.end()) {
+          luaX_push(L, luaX_nil);
+        } else {
+          i->second.push(L);
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
     }
   }
 
