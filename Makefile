@@ -21,6 +21,7 @@ LDFLAGS += -L$(LUA_LIBDIR) $(LIBFLAG)
 LDLIBS += -lpthread -ldl
 
 OBJS = \
+	env.o \
 	main.o \
 	state.o \
 	state_handle.o \

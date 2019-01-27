@@ -18,11 +18,13 @@
 #include "common.hpp"
 
 namespace dromozoa {
+  void initialize_env(lua_State*);
   void initialize_main(lua_State*);
   void initialize_state(lua_State*);
   void initialize_thread(lua_State*);
 
   void initialize(lua_State* L) {
+    initialize_env(L);
     initialize_main(L);
     initialize_state(L);
     initialize_thread(L);
