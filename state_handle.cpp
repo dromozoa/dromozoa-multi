@@ -43,11 +43,11 @@ namespace dromozoa {
         case LUA_TNIL:
           luaX_push(state_, luaX_nil);
           break;
-        case LUA_TNUMBER:
-          luaX_push(state_, lua_tonumber(L, i));
-          break;
         case LUA_TBOOLEAN:
           luaX_push(state_, lua_toboolean(L, i));
+          break;
+        case LUA_TNUMBER:
+          luaX_push(state_, lua_tonumber(L, i));
           break;
         case LUA_TSTRING:
           luaX_push(state_, luaX_to_string(L, i));
@@ -59,7 +59,7 @@ namespace dromozoa {
           if (i > arg) {
             lua_pop(state_, i - arg);
           }
-          return luaL_argerror(L, i, "nil/number/boolean/string/lightuserdata expected");
+          return luaL_argerror(L, i, "nil/boolean/number/string/lightuserdata expected");
       }
     }
     return top - arg + 1;
