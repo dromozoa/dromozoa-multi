@@ -170,6 +170,17 @@ namespace dromozoa {
   }
 
   void initialize_env(lua_State* L) {
+    // luaL_newmetatable(L, "dromozoa.multi.env");
+    // luaX_set_field(L, -1, "__index", impl_index);
+    // luaX_set_field(L, -1, "__newindex", impl_newindex);
+
+    // lua_newtable(L);
+    // {
+    //   luaX_set_metafield(L, -1, "__index", impl_index);
+    //   luaX_set_metafield(L, -1, "__newindex", impl_newindex);
+    // }
+    // luaX_set_field(L, -2, "env");
+
     luaX_set_field(L, -1, "set", impl_set);
     luaX_set_field(L, -1, "get", impl_get);
   }
