@@ -132,56 +132,72 @@ namespace dromozoa {
     mutex env_mutex;
     std::map<value, value> env_map;
 
-    void impl_set(lua_State* L) {
+    void env_get(lua_State* L, int arg) {
       try {
-        value k = value(L, 1);
-        value v = value(L, 2);
-        if (k.isnoneornil()) {
-          throw value_error(1, "table index is nil");
+        value k = value(L, arg);
+        {
+          lock_guard<> lock(env_mutex);
+          std::map<value, value>::const_iterator i = env_map.find(k);
+          if (i == env_map.end()) {
+            luaX_push(L, luaX_nil);
+          } else {
+            i->second.push(L);
+          }
         }
-
-        lock_guard<> lock(env_mutex);
-        if (v.isnoneornil()) {
-          env_map.erase(k);
-        } else {
-          env_map[k] = v;
-        }
-        luaX_push_success(L);
       } catch (const value_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
     }
 
-    void impl_get(lua_State* L) {
+    void env_set(lua_State* L, int arg) {
       try {
-        value k = value(L, 1);
-
-        lock_guard<> lock(env_mutex);
-        std::map<value, value>::const_iterator i = env_map.find(k);
-        if (i == env_map.end()) {
-          luaX_push(L, luaX_nil);
-        } else {
-          i->second.push(L);
+        value k = value(L, arg);
+        value v = value(L, arg + 1);
+        if (k.isnoneornil()) {
+          throw value_error(arg, "table index is nil");
+        }
+        {
+          lock_guard<> lock(env_mutex);
+          if (v.isnoneornil()) {
+            env_map.erase(k);
+          } else {
+            env_map[k] = v;
+          }
         }
       } catch (const value_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
+    }
+
+    void impl_index(lua_State* L) {
+      env_get(L, 2);
+    }
+
+    void impl_newindex(lua_State* L) {
+      env_set(L, 2);
+    }
+
+    void impl_get(lua_State* L) {
+      env_get(L, 1);
+    }
+
+    void impl_set(lua_State* L) {
+      env_set(L, 1);
+      luaX_push_success(L);
     }
   }
 
   void initialize_env(lua_State* L) {
-    // luaL_newmetatable(L, "dromozoa.multi.env");
-    // luaX_set_field(L, -1, "__index", impl_index);
-    // luaX_set_field(L, -1, "__newindex", impl_newindex);
+    luaL_newmetatable(L, "dromozoa.multi.env");
+    luaX_set_field(L, -1, "__index", impl_index);
+    luaX_set_field(L, -1, "__newindex", impl_newindex);
+    lua_pop(L, 1);
 
-    // lua_newtable(L);
-    // {
-    //   luaX_set_metafield(L, -1, "__index", impl_index);
-    //   luaX_set_metafield(L, -1, "__newindex", impl_newindex);
-    // }
-    // luaX_set_field(L, -2, "env");
+    lua_newuserdata(L, 0);
+    luaX_set_metatable(L, "dromozoa.multi.env");
+    luaX_set_field(L, -2, "env");
 
-    luaX_set_field(L, -1, "set", impl_set);
     luaX_set_field(L, -1, "get", impl_get);
+    luaX_set_field(L, -1, "set", impl_set);
   }
 }
