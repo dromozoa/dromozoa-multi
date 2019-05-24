@@ -23,9 +23,10 @@ LDLIBS += -lpthread -ldl
 OBJS = \
 	env.o \
 	main.o \
+	module.o \
+	mutex.o \
 	state.o \
 	state_handle.o \
-	module.o \
 	thread.o
 TARGET = multi.so
 
