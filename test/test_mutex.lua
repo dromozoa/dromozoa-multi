@@ -18,6 +18,7 @@
 local multi = require "dromozoa.multi"
 local unix = require "dromozoa.unix"
 
+assert(#multi.mutex == 8)
 for i = 1, 8 do
   print(multi.mutex[i]:native_handle())
 end
