@@ -39,7 +39,7 @@ local mutex = multi.mutex[1]
 print "lock t2"
 mutex:lock()
 print "locked t2"
-unix.nanosleep(0.25)
+unix.nanosleep(0.5)
 print "unlock t2"
 mutex:unlock()
 ]]
@@ -51,14 +51,14 @@ print "locked t1"
 local s = assert(multi.state():load(chunk))
 local t = assert(multi.thread(s))
 
-unix.nanosleep(0.25)
+unix.nanosleep(0.5)
 print "unlock t1"
 mutex:unlock()
 
 print "lock t1"
 mutex:lock()
 print "locked t1"
-unix.nanosleep(0.25)
+unix.nanosleep(0.5)
 print "unlock t1"
 mutex:unlock()
 
