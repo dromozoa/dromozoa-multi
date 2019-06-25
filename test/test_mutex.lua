@@ -18,9 +18,9 @@
 local multi = require "dromozoa.multi"
 local unix = require "dromozoa.unix"
 
-assert(#multi.mutex == 8)
-for i = 1, 8 do
-  print(multi.mutex[i]:native_handle())
+assert(#multi.mutex == 16)
+for i = 1, 16 do
+  print(i, multi.mutex[i]:native_handle())
 end
 
 local mutex = multi.mutex[1]
@@ -29,8 +29,8 @@ local chunk = [[
 local multi = require "dromozoa.multi"
 local unix = require "dromozoa.unix"
 
-for i = 1, 8 do
-  print(multi.mutex[i]:native_handle())
+for i = 1, 16 do
+  print(i, multi.mutex[i]:native_handle())
 end
 
 local mutex = multi.mutex[1]
