@@ -17,60 +17,28 @@
 
 #include "common.hpp"
 
-#include <dromozoa/bind/atomic.hpp>
 #include <dromozoa/bind/mutex.hpp>
 
 namespace dromozoa {
   namespace {
-    class mutex_handle_impl {
-    public:
-      void add_ref() {
-        ++count_;
-      }
-
-      void release() {
-        if (--count_ == 0) {
-          delete this;
-        }
-      }
-
-      void lock() {
-        mutex_.lock();
-      }
-
-      void unlock() {
-        mutex_.unlock();
-      }
-
-    private:
-      atomic_count<long> count_;
-      mutex mutex_;
-    };
-
     class mutex_handle {
     public:
-      explicit mutex_handle(mutex_handle_impl* impl) : impl_(impl) {
-        impl_->add_ref();
-      }
-
-      ~mutex_handle() {
-        impl_->release();
-      }
-
-      mutex_handle_impl* share() {
-        return impl_;
-      }
+      explicit mutex_handle(mutex* mutex) : mutex_(mutex) {}
 
       void lock() {
-        impl_->lock();
+        mutex_->lock();
       }
 
       void unlock() {
-        impl_->unlock();
+        mutex_->unlock();
+      }
+
+      pthread_mutex_t* native_handle() {
+        return mutex_->native_handle();
       }
 
     private:
-      mutex_handle_impl* impl_;
+      mutex* mutex_;
     };
 
     mutex_handle* check_mutex_handle(lua_State* L, int arg) {
@@ -79,22 +47,6 @@ namespace dromozoa {
 
     void impl_gc(lua_State* L) {
       check_mutex_handle(L, 1)->~mutex_handle();
-    }
-
-    void impl_call(lua_State* L) {
-      if (lua_islightuserdata(L, 2)) {
-        luaX_new<mutex_handle>(L, static_cast<mutex_handle_impl*>(lua_touserdata(L, 2)));
-        luaX_set_metatable(L, "dromozoa.multi.mutex");
-      } else {
-        scoped_ptr<mutex_handle_impl> impl(new mutex_handle_impl());
-        luaX_new<mutex_handle>(L, impl.get());
-        impl.release();
-        luaX_set_metatable(L, "dromozoa.multi.mutex");
-      }
-    }
-
-    void impl_share(lua_State* L) {
-      lua_pushlightuserdata(L, check_mutex_handle(L, 1)->share());
     }
 
     void impl_lock(lua_State* L) {
@@ -106,6 +58,26 @@ namespace dromozoa {
       check_mutex_handle(L, 1)->unlock();
       luaX_push_success(L);
     }
+
+    void impl_native_handle(lua_State* L) {
+      lua_pushlightuserdata(L, check_mutex_handle(L, 1)->native_handle());
+    }
+
+    mutex mutex1;
+    mutex mutex2;
+    mutex mutex3;
+    mutex mutex4;
+    mutex mutex5;
+    mutex mutex6;
+    mutex mutex7;
+    mutex mutex8;
+  }
+
+  void initialize_mutex(lua_State* L, mutex* mutex, int index) {
+    int top = lua_gettop(L);
+    luaX_new<mutex_handle>(L, mutex);
+    luaX_set_metatable(L, "dromozoa.multi.mutex");
+    luaX_set_field(L, top, index);
   }
 
   void initialize_mutex(lua_State* L) {
@@ -117,10 +89,18 @@ namespace dromozoa {
       luaX_set_field(L, -1, "__gc", impl_gc);
       lua_pop(L, 1);
 
-      luaX_set_metafield(L, -1, "__call", impl_call);
-      luaX_set_field(L, -1, "share", impl_share);
       luaX_set_field(L, -1, "lock", impl_lock);
       luaX_set_field(L, -1, "unlock", impl_unlock);
+      luaX_set_field(L, -1, "native_handle", impl_native_handle);
+
+      initialize_mutex(L, &mutex1, 1);
+      initialize_mutex(L, &mutex2, 2);
+      initialize_mutex(L, &mutex3, 3);
+      initialize_mutex(L, &mutex4, 4);
+      initialize_mutex(L, &mutex5, 5);
+      initialize_mutex(L, &mutex6, 6);
+      initialize_mutex(L, &mutex7, 7);
+      initialize_mutex(L, &mutex8, 8);
     }
     luaX_set_field(L, -2, "mutex");
   }
