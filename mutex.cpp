@@ -71,25 +71,6 @@ namespace dromozoa {
     mutex mutex6;
     mutex mutex7;
     mutex mutex8;
-
-    void get(lua_State* L, mutex* mutex) {
-      luaX_new<mutex_handle>(L, mutex);
-      luaX_set_metatable(L, "dromozoa.multi.mutex");
-    }
-
-    void impl_get(lua_State* L) {
-      int i = luaX_check_integer(L, 1, 1, 8);
-      switch (i) {
-        case 1: get(L, &mutex1); break;
-        case 2: get(L, &mutex2); break;
-        case 3: get(L, &mutex3); break;
-        case 4: get(L, &mutex4); break;
-        case 5: get(L, &mutex5); break;
-        case 6: get(L, &mutex6); break;
-        case 7: get(L, &mutex7); break;
-        case 8: get(L, &mutex8); break;
-      }
-    }
   }
 
   void initialize_mutex(lua_State* L, mutex* mutex, int index) {
@@ -111,7 +92,6 @@ namespace dromozoa {
       luaX_set_field(L, -1, "lock", impl_lock);
       luaX_set_field(L, -1, "unlock", impl_unlock);
       luaX_set_field(L, -1, "native_handle", impl_native_handle);
-      luaX_set_field(L, -1, "get", impl_get);
 
       initialize_mutex(L, &mutex1, 1);
       initialize_mutex(L, &mutex2, 2);

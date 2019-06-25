@@ -23,7 +23,7 @@ for i = 1, 8 do
   print(multi.mutex[i]:native_handle())
 end
 
-local mutex = multi.mutex.get(1)
+local mutex = multi.mutex[1]
 
 local chunk = [[
 local multi = require "dromozoa.multi"
