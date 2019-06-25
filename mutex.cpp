@@ -71,6 +71,14 @@ namespace dromozoa {
     mutex mutex6;
     mutex mutex7;
     mutex mutex8;
+    mutex mutex9;
+    mutex mutex10;
+    mutex mutex11;
+    mutex mutex12;
+    mutex mutex13;
+    mutex mutex14;
+    mutex mutex15;
+    mutex mutex16;
   }
 
   void initialize_mutex(lua_State* L, mutex* mutex, int index) {
@@ -101,6 +109,15 @@ namespace dromozoa {
       initialize_mutex(L, &mutex6, 6);
       initialize_mutex(L, &mutex7, 7);
       initialize_mutex(L, &mutex8, 8);
+      initialize_mutex(L, &mutex9, 9);
+      initialize_mutex(L, &mutex10, 10);
+      initialize_mutex(L, &mutex11, 11);
+      initialize_mutex(L, &mutex12, 12);
+      initialize_mutex(L, &mutex13, 13);
+      initialize_mutex(L, &mutex14, 14);
+      initialize_mutex(L, &mutex15, 15);
+      initialize_mutex(L, &mutex16, 16);
+
     }
     luaX_set_field(L, -2, "mutex");
   }
