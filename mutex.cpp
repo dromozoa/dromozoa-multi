@@ -17,7 +17,6 @@
 
 #include "common.hpp"
 
-#include <dromozoa/bind/atomic.hpp>
 #include <dromozoa/bind/mutex.hpp>
 
 namespace dromozoa {
