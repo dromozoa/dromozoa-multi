@@ -1,28 +1,26 @@
 rockspec_format = "3.0"
-package = "dromozoa-multi"
-version = "1.11-1"
+package = "dromozoa-bind"
+version = "1.57-1"
 source = {
-  url = "https://github.com/dromozoa/dromozoa-multi/archive/v1.11.tar.gz";
-  file = "dromozoa-multi-1.11.tar.gz";
+  url = "https://github.com/dromozoa/dromozoa-bind/archive/v1.57.tar.gz";
+  file = "dromozoa-bind-1.57.tar.gz";
 }
 description = {
-  summary = "Multiple Lua states and native threads";
+  summary = "Helper library for creating bindings between C++ and Lua";
   license = "GPL-3";
-  homepage = "https://github.com/dromozoa/dromozoa-multi/";
+  homepage = "https://github.com/dromozoa/dromozoa-bind/";
   maintainer = "Tomoyuki Fujimori <moyu@dromozoa.com>";
 }
 test = {
   type = "command";
   command = "./test.sh";
 }
-
 build = {
   type = "make";
   build_variables = {
     CFLAGS = "$(CFLAGS)";
     LIBFLAG = "$(LIBFLAG)";
     LUA_INCDIR = "$(LUA_INCDIR)";
-    LUA_LIBDIR = "$(LUA_LIBDIR)";
   };
   install_variables = {
     LIBDIR = "$(LIBDIR)";

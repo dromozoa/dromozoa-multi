@@ -17,7 +17,6 @@
 
 CPPFLAGS += -Ibind -I$(LUA_INCDIR)
 CXXFLAGS += -Wall -W $(CFLAGS)
-LDFLAGS += -L$(LUA_LIBDIR) $(LIBFLAG)
 LDLIBS += -lpthread -ldl
 
 OBJS = \
@@ -39,7 +38,7 @@ check:
 	./test.sh
 
 multi.so: $(OBJS)
-	$(CXX) $(LDFLAGS) $^ $(LDLIBS) -o $@
+	$(CXX) $(LDFLAGS) $(LIBFLAG) $^ $(LDLIBS) -o $@
 
 .cpp.o:
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $<
