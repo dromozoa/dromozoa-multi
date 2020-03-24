@@ -1,4 +1,4 @@
-// Copyright (C) 2019 Tomoyuki Fujimori <moyu@dromozoa.com>
+// Copyright (C) 2019,2020 Tomoyuki Fujimori <moyu@dromozoa.com>
 //
 // This file is part of dromozoa-multi.
 //
@@ -46,78 +46,15 @@ namespace dromozoa {
     public:
       value() : type_(LUA_TNONE) {}
 
-      value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
-        switch (type_) {
-          case LUA_TNONE:
-          case LUA_TNIL:
-            break;
-          case LUA_TBOOLEAN:
-            boolean_ = lua_toboolean(L, arg);
-            break;
-          case LUA_TNUMBER:
-            number_ = lua_tonumber(L, arg);
-            break;
-          case LUA_TSTRING:
-            {
-              luaX_string_reference string = luaX_to_string(L, arg);
-              string_.assign(string.data(), string.size());
-            }
-            break;
-          case LUA_TLIGHTUSERDATA:
-            userdata_ = lua_touserdata(L, arg);
-            break;
-          default:
-            throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
-        }
-      }
+      value(lua_State*, int);
 
       bool isnoneornil() const {
         return type_ == LUA_TNONE || type_ == LUA_TNIL;
       }
 
-      void push(lua_State* L) const {
-        switch (type_) {
-          case LUA_TNONE:
-          case LUA_TNIL:
-            luaX_push(L, luaX_nil);
-            break;
-          case LUA_TBOOLEAN:
-            luaX_push(L, boolean_);
-            break;
-          case LUA_TNUMBER:
-            luaX_push(L, number_);
-            break;
-          case LUA_TSTRING:
-            luaX_push(L, string_);
-            break;
-          case LUA_TLIGHTUSERDATA:
-            lua_pushlightuserdata(L, userdata_);
-            break;
-          default:
-            throw std::logic_error("unreachable code");
-        }
-      }
+      void push(lua_State*) const;
 
-      bool operator<(const value& that) const {
-        if (type_ != that.type_) {
-          return type_ < that.type_;
-        }
-        switch (type_) {
-          case LUA_TNONE:
-          case LUA_TNIL:
-            return false;
-          case LUA_TBOOLEAN:
-            return boolean_ < that.boolean_;
-          case LUA_TNUMBER:
-            return number_ < that.number_;
-          case LUA_TSTRING:
-            return string_ < that.string_;
-          case LUA_TLIGHTUSERDATA:
-            return userdata_ < that.userdata_;
-          default:
-            throw std::logic_error("unreachable code");
-        }
-      }
+      bool operator<(const value&) const;
 
     private:
       int type_;
@@ -128,6 +65,75 @@ namespace dromozoa {
       };
       std::string string_;
     };
+
+    value::value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          break;
+        case LUA_TBOOLEAN:
+          boolean_ = lua_toboolean(L, arg);
+          break;
+        case LUA_TNUMBER:
+          number_ = lua_tonumber(L, arg);
+          break;
+        case LUA_TSTRING:
+          {
+            luaX_string_reference string = luaX_to_string(L, arg);
+            string_.assign(string.data(), string.size());
+          }
+          break;
+        case LUA_TLIGHTUSERDATA:
+          userdata_ = lua_touserdata(L, arg);
+          break;
+        default:
+          throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
+      }
+    }
+
+    void value::push(lua_State* L) const {
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          luaX_push(L, luaX_nil);
+          break;
+        case LUA_TBOOLEAN:
+          luaX_push(L, boolean_);
+          break;
+        case LUA_TNUMBER:
+          luaX_push(L, number_);
+          break;
+        case LUA_TSTRING:
+          luaX_push(L, string_);
+          break;
+        case LUA_TLIGHTUSERDATA:
+          lua_pushlightuserdata(L, userdata_);
+          break;
+        default:
+          throw std::logic_error("unreachable code");
+      }
+    }
+
+    bool value::operator<(const value& that) const {
+      if (type_ != that.type_) {
+        return type_ < that.type_;
+      }
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          return false;
+        case LUA_TBOOLEAN:
+          return boolean_ < that.boolean_;
+        case LUA_TNUMBER:
+          return number_ < that.number_;
+        case LUA_TSTRING:
+          return string_ < that.string_;
+        case LUA_TLIGHTUSERDATA:
+          return userdata_ < that.userdata_;
+        default:
+          throw std::logic_error("unreachable code");
+      }
+    }
 
     mutex env_mutex;
     std::map<value, value> env_map;
