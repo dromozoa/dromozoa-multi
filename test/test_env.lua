@@ -84,3 +84,5 @@ assert(env.baz == "qux")
 ]]
 
 multi.thread(s, 1):join()
+
+env.big = ("abcdefghijklmnopqrstuvwxyz"):rep(65536)

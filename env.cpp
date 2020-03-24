@@ -27,19 +27,7 @@ namespace dromozoa {
   namespace {
     class value_error {
     public:
-      explicit value_error(const char* msg) : msg_(msg) {}
-
-      const char* msg() const {
-        return msg_;
-      }
-
-    private:
-      const char* msg_;
-    };
-
-    class value_arg_error {
-    public:
-      value_arg_error(int arg, const char* msg) : arg_(arg), msg_(msg) {}
+      value_error(int arg, const char* msg) : arg_(arg), msg_(msg) {}
 
       int arg() const {
         return arg_;
@@ -107,7 +95,7 @@ namespace dromozoa {
           userdata_ = lua_touserdata(L, arg);
           break;
         default:
-          throw value_arg_error(arg, "nil/boolean/number/string/lightuserdata expected");
+          throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
       }
     }
 
@@ -129,7 +117,7 @@ namespace dromozoa {
           userdata_ = that.userdata_;
           break;
         default:
-          throw value_error("nil/boolean/number/string/lightuserdata expected");
+          throw std::logic_error("unreachable code");
       }
     }
 
@@ -141,7 +129,6 @@ namespace dromozoa {
       }
       type_ = LUA_TNONE;
     }
-
 
     value& value::operator=(const value& that) {
       destruct_();
@@ -163,7 +150,7 @@ namespace dromozoa {
           userdata_ = that.userdata_;
           break;
         default:
-          throw value_error("nil/boolean/number/string/lightuserdata expected");
+          throw std::logic_error("unreachable code");
       }
       return *this;
     }
@@ -228,8 +215,6 @@ namespace dromozoa {
           }
         }
       } catch (const value_error& e) {
-        luaL_error(L, "%s", e.msg());
-      } catch (const value_arg_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
     }
@@ -239,7 +224,7 @@ namespace dromozoa {
         value k(L, arg);
         value v(L, arg + 1);
         if (k.isnoneornil()) {
-          throw value_arg_error(arg, "table index is nil");
+          throw value_error(arg, "table index is nil");
         }
         {
           lock_guard<> lock(env_mutex);
@@ -249,7 +234,7 @@ namespace dromozoa {
             env_map[k] = v;
           }
         }
-      } catch (const value_arg_error& e) {
+      } catch (const value_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
     }
