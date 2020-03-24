@@ -27,7 +27,19 @@ namespace dromozoa {
   namespace {
     class value_error {
     public:
-      value_error(int arg, const char* msg) : arg_(arg), msg_(msg) {}
+      explicit value_error(const char* msg) : msg_(msg) {}
+
+      const char* msg() const {
+        return msg_;
+      }
+
+    private:
+      const char* msg_;
+    };
+
+    class value_arg_error {
+    public:
+      value_arg_error(int arg, const char* msg) : arg_(arg), msg_(msg) {}
 
       int arg() const {
         return arg_;
@@ -45,8 +57,14 @@ namespace dromozoa {
     class value {
     public:
       value() : type_(LUA_TNONE) {}
-
       value(lua_State*, int);
+      value(const value&);
+
+      ~value() {
+        destruct_();
+      }
+
+      value& operator=(const value&);
 
       bool isnoneornil() const {
         return type_ == LUA_TNONE || type_ == LUA_TNIL;
@@ -61,9 +79,11 @@ namespace dromozoa {
       union {
         bool boolean_;
         double number_;
+        std::string string_;
         void* userdata_;
       };
-      std::string string_;
+
+      void destruct_();
     };
 
     value::value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
@@ -80,15 +100,72 @@ namespace dromozoa {
         case LUA_TSTRING:
           {
             luaX_string_reference string = luaX_to_string(L, arg);
-            string_.assign(string.data(), string.size());
+            new (&string_) std::string(string.data(), string.size());
           }
           break;
         case LUA_TLIGHTUSERDATA:
           userdata_ = lua_touserdata(L, arg);
           break;
         default:
-          throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
+          throw value_arg_error(arg, "nil/boolean/number/string/lightuserdata expected");
       }
+    }
+
+    value::value(const value& that) : type_(that.type_) {
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          break;
+        case LUA_TBOOLEAN:
+          boolean_ = that.boolean_;
+          break;
+        case LUA_TNUMBER:
+          number_ = that.number_;
+          break;
+        case LUA_TSTRING:
+          new (&string_) std::string(that.string_);
+          break;
+        case LUA_TLIGHTUSERDATA:
+          userdata_ = that.userdata_;
+          break;
+        default:
+          throw value_error("nil/boolean/number/string/lightuserdata expected");
+      }
+    }
+
+    void value::destruct_() {
+      switch (type_) {
+        case LUA_TSTRING:
+          string_.~basic_string();
+          break;
+      }
+      type_ = LUA_TNONE;
+    }
+
+
+    value& value::operator=(const value& that) {
+      destruct_();
+      type_ = that.type_;
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          break;
+        case LUA_TBOOLEAN:
+          boolean_ = that.boolean_;
+          break;
+        case LUA_TNUMBER:
+          number_ = that.number_;
+          break;
+        case LUA_TSTRING:
+          new (&string_) std::string(that.string_);
+          break;
+        case LUA_TLIGHTUSERDATA:
+          userdata_ = that.userdata_;
+          break;
+        default:
+          throw value_error("nil/boolean/number/string/lightuserdata expected");
+      }
+      return *this;
     }
 
     void value::push(lua_State* L) const {
@@ -140,7 +217,7 @@ namespace dromozoa {
 
     void env_get(lua_State* L, int arg) {
       try {
-        value k = value(L, arg);
+        value k(L, arg);
         {
           lock_guard<> lock(env_mutex);
           std::map<value, value>::const_iterator i = env_map.find(k);
@@ -151,16 +228,18 @@ namespace dromozoa {
           }
         }
       } catch (const value_error& e) {
+        luaL_error(L, "%s", e.msg());
+      } catch (const value_arg_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
     }
 
     void env_set(lua_State* L, int arg) {
       try {
-        value k = value(L, arg);
-        value v = value(L, arg + 1);
+        value k(L, arg);
+        value v(L, arg + 1);
         if (k.isnoneornil()) {
-          throw value_error(arg, "table index is nil");
+          throw value_arg_error(arg, "table index is nil");
         }
         {
           lock_guard<> lock(env_mutex);
@@ -170,7 +249,7 @@ namespace dromozoa {
             env_map[k] = v;
           }
         }
-      } catch (const value_error& e) {
+      } catch (const value_arg_error& e) {
         luaL_argerror(L, e.arg(), e.msg());
       }
     }

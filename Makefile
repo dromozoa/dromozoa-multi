@@ -16,7 +16,7 @@
 # along with dromozoa-multi.  If not, see <http://www.gnu.org/licenses/>.
 
 CPPFLAGS += -Ibind -I$(LUA_INCDIR)
-CXXFLAGS += -Wall -W $(CFLAGS)
+CXXFLAGS += -std=c++11 -Wall -W $(CFLAGS)
 LDLIBS += -lpthread -ldl
 
 OBJS = \
