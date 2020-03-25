@@ -1,4 +1,4 @@
-# Copyright (C) 2019 Tomoyuki Fujimori <moyu@dromozoa.com>
+# Copyright (C) 2019,2020 Tomoyuki Fujimori <moyu@dromozoa.com>
 #
 # This file is part of dromozoa-multi.
 #
@@ -16,7 +16,7 @@
 # along with dromozoa-multi.  If not, see <http://www.gnu.org/licenses/>.
 
 CPPFLAGS += -Ibind -I$(LUA_INCDIR)
-CXXFLAGS += -Wall -W $(CFLAGS)
+CXXFLAGS += -std=c++11 -Wall -W $(CFLAGS)
 LDLIBS += -lpthread -ldl
 
 OBJS = \

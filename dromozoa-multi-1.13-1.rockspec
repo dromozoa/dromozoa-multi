@@ -1,9 +1,9 @@
 rockspec_format = "3.0"
 package = "dromozoa-multi"
-version = "1.12-1"
+version = "1.13-1"
 source = {
-  url = "https://github.com/dromozoa/dromozoa-multi/archive/v1.12.tar.gz";
-  file = "dromozoa-multi-1.12.tar.gz";
+  url = "https://github.com/dromozoa/dromozoa-multi/archive/v1.13.tar.gz";
+  file = "dromozoa-multi-1.13.tar.gz";
 }
 description = {
   summary = "Multiple Lua states and native threads";

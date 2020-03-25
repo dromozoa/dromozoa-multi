@@ -1,4 +1,4 @@
--- Copyright (C) 2019 Tomoyuki Fujimori <moyu@dromozoa.com>
+-- Copyright (C) 2019,2020 Tomoyuki Fujimori <moyu@dromozoa.com>
 --
 -- This file is part of dromozoa-multi.
 --
@@ -29,17 +29,17 @@ assert(multi.get "foo" == "bar")
 assert(multi.set "foo")
 assert(multi.get "foo" == nil)
 
-local result, message = pcall(multi.set, {}, "baz")
-if verbose then
-  print(message)
-end
-assert(not result)
+-- local result, message = pcall(multi.set, {}, "baz")
+-- if verbose then
+--   print(message)
+-- end
+-- assert(not result)
 
-local result, message = pcall(multi.set, "baz", {})
-if verbose then
-  print(message)
-end
-assert(not result)
+-- local result, message = pcall(multi.set, "baz", {})
+-- if verbose then
+--   print(message)
+-- end
+-- assert(not result)
 
 local result, message = pcall(multi.set, nil, "baz")
 if verbose then
@@ -65,6 +65,32 @@ env.foo = false
 env.bar = 42
 env.baz = "qux"
 
+env.big = ("abcdefghijklmnopqrstuvwxyz"):rep(65536)
+
+env.m = {
+  foo = 17;
+  bar = true;
+  baz = "qux";
+}
+
+local m = env.m
+local t = multi.map_to_table(m)
+if verbose then
+  print(m)
+  print(m.foo)
+  print(m.bar)
+  print(m.baz)
+
+  print(t)
+  print(t.foo)
+  print(t.bar)
+  print(t.baz)
+end
+m = nil
+
+collectgarbage()
+collectgarbage()
+
 local s = multi.state():load [[
 local multi = require "dromozoa.multi"
 local env = multi.env
@@ -81,6 +107,24 @@ assert(multi.get "baz" == "qux")
 assert(env.foo == false)
 assert(env.bar == 42)
 assert(env.baz == "qux")
+assert(env.m.baz == "qux")
+env.m = nil
 ]]
 
 multi.thread(s, 1):join()
+
+if verbose then
+  print "done"
+end
+
+env.m = {
+  foo = { 1, 2, 3, 4 };
+  bar = { { { 42 } } };
+}
+
+print(env.m.bar[1][1][1])
+
+local t = multi.map_to_table(env.m)
+print(t.foo)
+print(t.bar)
+
