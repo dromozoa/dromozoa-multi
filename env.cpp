@@ -42,6 +42,13 @@ namespace dromozoa {
       const char* msg_;
     };
 
+    class value;
+
+    struct table_type {
+      mutex mutex;
+      std::map<value, value> map;
+    };
+
     class value {
     public:
       value() : type_(LUA_TNONE) {}
@@ -68,11 +75,80 @@ namespace dromozoa {
         bool boolean_;
         double number_;
         std::string string_;
+        std::shared_ptr<table_type> table_;
         void* userdata_;
       };
 
       void destruct_();
     };
+
+    std::shared_ptr<table_type> table_to_map(lua_State* L, int arg) {
+      std::shared_ptr<table_type> result = std::make_shared<table_type>();
+
+      luaX_push(L, luaX_nil);
+      while (lua_next(L, arg)) {
+        value k(L, -2);
+        value v(L, -1);
+        if (!k.isnoneornil() && !v.isnoneornil()) {
+          result->map[k] = v;
+        }
+        lua_pop(L, 1);
+      }
+
+      return result;
+    }
+
+    void map_new(lua_State* L, std::shared_ptr<table_type> source) {
+      luaX_new<std::shared_ptr<table_type> >(L, source);
+      luaX_set_metatable(L, "dromozoa.multi.map");
+    }
+
+    std::shared_ptr<table_type>* map_check(lua_State* L, int arg) {
+      return luaX_check_udata<std::shared_ptr<table_type> >(L, arg, "dromozoa.multi.map");
+    }
+
+    void map_gc(lua_State* L) {
+      map_check(L, 1)->~shared_ptr();
+    }
+
+    void map_get(lua_State* L) {
+      try {
+        std::shared_ptr<table_type> t = *map_check(L, 1);
+        value k(L, 2);
+        {
+          lock_guard<> lock(t->mutex);
+          std::map<value, value>::const_iterator i = t->map.find(k);
+          if (i == t->map.end()) {
+            luaX_push(L, luaX_nil);
+          } else {
+            i->second.push(L);
+          }
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
+    }
+
+    void map_set(lua_State* L) {
+      try {
+        std::shared_ptr<table_type> t = *map_check(L, 1);
+        value k(L, 2);
+        value v(L, 3);
+        if (k.isnoneornil()) {
+          throw value_error(2, "table index is nil");
+        }
+        {
+          lock_guard<> lock(t->mutex);
+          if (v.isnoneornil()) {
+            t->map.erase(k);
+          } else {
+            t->map[k] = v;
+          }
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
+    }
 
     value::value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
       switch (type_) {
@@ -90,6 +166,9 @@ namespace dromozoa {
             luaX_string_reference string = luaX_to_string(L, arg);
             new (&string_) std::string(string.data(), string.size());
           }
+          break;
+        case LUA_TTABLE:
+          new (&table_) std::shared_ptr<table_type>(table_to_map(L, arg));
           break;
         case LUA_TLIGHTUSERDATA:
           userdata_ = lua_touserdata(L, arg);
@@ -113,6 +192,9 @@ namespace dromozoa {
         case LUA_TSTRING:
           new (&string_) std::string(that.string_);
           break;
+        case LUA_TTABLE:
+          new (&table_) std::shared_ptr<table_type>(that.table_);
+          break;
         case LUA_TLIGHTUSERDATA:
           userdata_ = that.userdata_;
           break;
@@ -125,6 +207,9 @@ namespace dromozoa {
       switch (type_) {
         case LUA_TSTRING:
           string_.~basic_string();
+          break;
+        case LUA_TTABLE:
+          table_.~shared_ptr();
           break;
       }
       type_ = LUA_TNONE;
@@ -145,6 +230,9 @@ namespace dromozoa {
           break;
         case LUA_TSTRING:
           new (&string_) std::string(that.string_);
+          break;
+        case LUA_TTABLE:
+          new (&table_) std::shared_ptr<table_type>(that.table_);
           break;
         case LUA_TLIGHTUSERDATA:
           userdata_ = that.userdata_;
@@ -170,6 +258,9 @@ namespace dromozoa {
         case LUA_TSTRING:
           luaX_push(L, string_);
           break;
+        case LUA_TTABLE:
+          map_new(L, table_);
+          break;
         case LUA_TLIGHTUSERDATA:
           lua_pushlightuserdata(L, userdata_);
           break;
@@ -192,6 +283,8 @@ namespace dromozoa {
           return number_ < that.number_;
         case LUA_TSTRING:
           return string_ < that.string_;
+        case LUA_TTABLE:
+          return table_ < that.table_;
         case LUA_TLIGHTUSERDATA:
           return userdata_ < that.userdata_;
         default:
@@ -269,5 +362,13 @@ namespace dromozoa {
 
     luaX_set_field(L, -1, "get", impl_get);
     luaX_set_field(L, -1, "set", impl_set);
+
+    {
+      luaL_newmetatable(L, "dromozoa.multi.map");
+      luaX_set_field(L, -1, "__index", map_get);
+      luaX_set_field(L, -1, "__newindex", map_set);
+      luaX_set_field(L, -1, "__gc", map_gc);
+      lua_pop(L, 1);
+    }
   }
 }

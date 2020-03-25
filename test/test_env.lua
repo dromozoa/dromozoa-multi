@@ -29,17 +29,17 @@ assert(multi.get "foo" == "bar")
 assert(multi.set "foo")
 assert(multi.get "foo" == nil)
 
-local result, message = pcall(multi.set, {}, "baz")
-if verbose then
-  print(message)
-end
-assert(not result)
+-- local result, message = pcall(multi.set, {}, "baz")
+-- if verbose then
+--   print(message)
+-- end
+-- assert(not result)
 
-local result, message = pcall(multi.set, "baz", {})
-if verbose then
-  print(message)
-end
-assert(not result)
+-- local result, message = pcall(multi.set, "baz", {})
+-- if verbose then
+--   print(message)
+-- end
+-- assert(not result)
 
 local result, message = pcall(multi.set, nil, "baz")
 if verbose then
@@ -65,6 +65,22 @@ env.foo = false
 env.bar = 42
 env.baz = "qux"
 
+env.big = ("abcdefghijklmnopqrstuvwxyz"):rep(65536)
+
+env.m = {
+  foo = 17;
+  bar = true;
+  baz = "qux";
+}
+
+local m = env.m
+if verbose then
+  print(m)
+  print(m.foo)
+  print(m.bar)
+  print(m.baz)
+end
+
 local s = multi.state():load [[
 local multi = require "dromozoa.multi"
 local env = multi.env
@@ -81,8 +97,7 @@ assert(multi.get "baz" == "qux")
 assert(env.foo == false)
 assert(env.bar == 42)
 assert(env.baz == "qux")
+assert(env.m.baz == "qux")
 ]]
 
 multi.thread(s, 1):join()
-
-env.big = ("abcdefghijklmnopqrstuvwxyz"):rep(65536)
