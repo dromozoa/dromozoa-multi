@@ -21,7 +21,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <iostream>
 
 #include <dromozoa/bind/mutex.hpp>
 
@@ -49,10 +48,6 @@ namespace dromozoa {
     struct table_type {
       dromozoa::mutex mutex;
       std::map<value, value> map;
-
-      ~table_type() {
-        std::cerr << "~table_type " << this << "\n";
-      }
     };
 
     class value {
