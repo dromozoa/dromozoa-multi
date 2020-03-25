@@ -363,12 +363,10 @@ namespace dromozoa {
     luaX_set_field(L, -1, "get", impl_get);
     luaX_set_field(L, -1, "set", impl_set);
 
-    {
-      luaL_newmetatable(L, "dromozoa.multi.map");
-      luaX_set_field(L, -1, "__index", map_get);
-      luaX_set_field(L, -1, "__newindex", map_set);
-      luaX_set_field(L, -1, "__gc", map_gc);
-      lua_pop(L, 1);
-    }
+    luaL_newmetatable(L, "dromozoa.multi.map");
+    luaX_set_field(L, -1, "__index", map_get);
+    luaX_set_field(L, -1, "__newindex", map_set);
+    luaX_set_field(L, -1, "__gc", map_gc);
+    lua_pop(L, 1);
   }
 }
