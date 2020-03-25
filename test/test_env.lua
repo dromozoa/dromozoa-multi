@@ -74,12 +74,22 @@ env.m = {
 }
 
 local m = env.m
+local t = multi.map_to_table(m)
 if verbose then
   print(m)
   print(m.foo)
   print(m.bar)
   print(m.baz)
+
+  print(t)
+  print(t.foo)
+  print(t.bar)
+  print(t.baz)
 end
+m = nil
+
+collectgarbage()
+collectgarbage()
 
 local s = multi.state():load [[
 local multi = require "dromozoa.multi"
@@ -98,6 +108,12 @@ assert(env.foo == false)
 assert(env.bar == 42)
 assert(env.baz == "qux")
 assert(env.m.baz == "qux")
+env.m = nil
 ]]
 
 multi.thread(s, 1):join()
+
+if verbose then
+  print "done"
+end
+

@@ -20,6 +20,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <iostream>
 
 #include <dromozoa/bind/mutex.hpp>
 
@@ -47,6 +48,10 @@ namespace dromozoa {
     struct table_type {
       mutex mutex;
       std::map<value, value> map;
+
+      ~table_type() {
+        std::cerr << "~table_type " << this << "\n";
+      }
     };
 
     class value {
@@ -175,6 +180,23 @@ namespace dromozoa {
           break;
         default:
           throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
+      }
+    }
+
+    void map_to_table(lua_State* L) {
+      try {
+        std::shared_ptr<table_type> t = *map_check(L, 1);
+        {
+          lock_guard<> lock(t->mutex);
+          lua_newtable(L);
+          for (const auto& item : t->map) {
+            item.first.push(L);
+            item.second.push(L);
+            lua_settable(L, -3);
+          }
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
       }
     }
 
@@ -368,5 +390,7 @@ namespace dromozoa {
     luaX_set_field(L, -1, "__newindex", map_set);
     luaX_set_field(L, -1, "__gc", map_gc);
     lua_pop(L, 1);
+
+    luaX_set_field(L, -1, "map_to_table", map_to_table);
   }
 }
