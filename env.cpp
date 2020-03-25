@@ -18,6 +18,7 @@
 #include "common.hpp"
 
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <iostream>
@@ -46,7 +47,7 @@ namespace dromozoa {
     class value;
 
     struct table_type {
-      mutex mutex;
+      dromozoa::mutex mutex;
       std::map<value, value> map;
 
       ~table_type() {
