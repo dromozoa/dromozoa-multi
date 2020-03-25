@@ -117,3 +117,14 @@ if verbose then
   print "done"
 end
 
+env.m = {
+  foo = { 1, 2, 3, 4 };
+  bar = { { { 42 } } };
+}
+
+print(env.m.bar[1][1][1])
+
+local t = multi.map_to_table(env.m)
+print(t.foo)
+print(t.bar)
+

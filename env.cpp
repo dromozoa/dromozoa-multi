@@ -88,10 +88,11 @@ namespace dromozoa {
     };
 
     std::shared_ptr<table_type> table_to_map(lua_State* L, int arg) {
+      int index = luaX_abs_index(L, arg);
       std::shared_ptr<table_type> result = std::make_shared<table_type>();
 
       luaX_push(L, luaX_nil);
-      while (lua_next(L, arg)) {
+      while (lua_next(L, index)) {
         value k(L, -2);
         value v(L, -1);
         if (!k.isnoneornil() && !v.isnoneornil()) {
