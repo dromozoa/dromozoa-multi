@@ -176,7 +176,7 @@ namespace dromozoa {
           userdata_ = lua_touserdata(L, arg);
           break;
         default:
-          throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
+          throw value_error(arg, "nil/boolean/number/string/table/lightuserdata expected");
       }
     }
 
