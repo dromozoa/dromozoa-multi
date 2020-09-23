@@ -18,9 +18,9 @@
 #include "common.hpp"
 
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
-#include <iostream>
 
 #include <dromozoa/bind/mutex.hpp>
 
@@ -46,12 +46,8 @@ namespace dromozoa {
     class value;
 
     struct table_type {
-      mutex mutex;
+      dromozoa::mutex mutex;
       std::map<value, value> map;
-
-      ~table_type() {
-        std::cerr << "~table_type " << this << "\n";
-      }
     };
 
     class value {
@@ -180,7 +176,7 @@ namespace dromozoa {
           userdata_ = lua_touserdata(L, arg);
           break;
         default:
-          throw value_error(arg, "nil/boolean/number/string/lightuserdata expected");
+          throw value_error(arg, "nil/boolean/number/string/table/lightuserdata expected");
       }
     }
 
