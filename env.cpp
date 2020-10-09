@@ -96,7 +96,8 @@ namespace std {
 
 namespace dromozoa {
   namespace {
-    typedef std::unordered_map<value, value> map_type;
+    typedef std::map<value, value> map_type;
+    // typedef std::unordered_map<value, value> map_type;
 
     struct table_type {
       dromozoa::mutex mutex;
