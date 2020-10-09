@@ -21,6 +21,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include <dromozoa/bind/mutex.hpp>
 
@@ -43,12 +44,7 @@ namespace dromozoa {
       const char* msg_;
     };
 
-    class value;
-
-    struct table_type {
-      dromozoa::mutex mutex;
-      std::map<value, value> map;
-    };
+    struct table_type;
 
     class value {
     public:
@@ -70,6 +66,10 @@ namespace dromozoa {
 
       bool operator<(const value&) const;
 
+      bool operator==(const value&) const;
+
+      size_t hash() const;
+
     private:
       int type_;
       union {
@@ -81,6 +81,26 @@ namespace dromozoa {
       };
 
       void destruct_();
+    };
+  }
+}
+
+namespace std {
+  template <>
+  struct hash<dromozoa::value> {
+    size_t operator()(const dromozoa::value& self) const {
+      return self.hash();
+    }
+  };
+}
+
+namespace dromozoa {
+  namespace {
+    typedef std::unordered_map<value, value> map_type;
+
+    struct table_type {
+      dromozoa::mutex mutex;
+      map_type map;
     };
 
     std::shared_ptr<table_type> table_to_map(lua_State* L, int arg) {
@@ -119,7 +139,7 @@ namespace dromozoa {
         value k(L, 2);
         {
           lock_guard<> lock(t->mutex);
-          std::map<value, value>::const_iterator i = t->map.find(k);
+          map_type::const_iterator i = t->map.find(k);
           if (i == t->map.end()) {
             luaX_push(L, luaX_nil);
           } else {
@@ -303,7 +323,7 @@ namespace dromozoa {
         case LUA_TSTRING:
           return string_ < that.string_;
         case LUA_TTABLE:
-          return table_ < that.table_;
+          return table_ < that.table_; // raw compare
         case LUA_TLIGHTUSERDATA:
           return userdata_ < that.userdata_;
         default:
@@ -311,15 +331,67 @@ namespace dromozoa {
       }
     }
 
+    bool value::operator==(const value& that) const {
+      if (type_ != that.type_) {
+        return false;
+      }
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          return true;
+        case LUA_TBOOLEAN:
+          return boolean_ == that.boolean_;
+        case LUA_TNUMBER:
+          return number_ == that.number_;
+        case LUA_TSTRING:
+          return string_ == that.string_;
+        case LUA_TTABLE:
+          return table_ == that.table_; // raw equal
+        case LUA_TLIGHTUSERDATA:
+          return userdata_ == that.userdata_;
+        default:
+          throw std::logic_error("unreachable code");
+      }
+    }
+
+    template <class T>
+    inline size_t hash_combine(size_t type, const T& value) {
+      size_t u = std::hash<size_t>()(type);
+      size_t v = std::hash<T>()(value);
+      u ^= v + 0x9E3779B9 + (u << 6) + (u >> 2);
+      return u;
+    }
+
+    size_t value::hash() const {
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          return hash_combine(LUA_TNIL, static_cast<const void*>(nullptr));
+        case LUA_TBOOLEAN:
+          return hash_combine(LUA_TBOOLEAN, boolean_);
+        case LUA_TNUMBER:
+          return hash_combine(LUA_TNUMBER, number_);
+        case LUA_TSTRING:
+          return hash_combine(LUA_TSTRING, string_);
+        case LUA_TTABLE:
+          return hash_combine(LUA_TTABLE, static_cast<const void*>(table_.get())); // raw pointer
+        case LUA_TLIGHTUSERDATA:
+          return hash_combine(LUA_TTABLE, static_cast<const void*>(userdata_));
+        default:
+          throw std::logic_error("unreachable code");
+      }
+    }
+
+
     mutex env_mutex;
-    std::map<value, value> env_map;
+    map_type env_map;
 
     void env_get(lua_State* L, int arg) {
       try {
         value k(L, arg);
         {
           lock_guard<> lock(env_mutex);
-          std::map<value, value>::const_iterator i = env_map.find(k);
+          map_type::const_iterator i = env_map.find(k);
           if (i == env_map.end()) {
             luaX_push(L, luaX_nil);
           } else {
