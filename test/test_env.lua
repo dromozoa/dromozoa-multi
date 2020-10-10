@@ -131,15 +131,25 @@ print(t.bar)
 env.x = {}
 local x = env.x
 
-for i = 1, 32 do
+for i = 1, 64 do
   local s = ("x"):rep(i)
+  local t = ("y"):rep(i)
   x[s] = s
+  x[t] = t
 end
 
-for i = 1, 32 do
+for i = 1, 64 do
   local s = ("x"):rep(i)
-  if verbose then
-    print(i, x[s], s)
-  end
+  local t = ("y"):rep(i)
   assert(x[s] == s)
+  assert(x[t] == t)
+end
+
+local y = multi.map_to_table(x)
+
+for i = 1, 64 do
+  local s = ("x"):rep(i)
+  local t = ("y"):rep(i)
+  assert(y[s] == s)
+  assert(y[t] == t)
 end
