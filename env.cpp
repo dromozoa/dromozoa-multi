@@ -50,10 +50,7 @@ namespace dromozoa {
 
     class value {
     public:
-      value() : type_(LUA_TNONE) {
-        data_[0] = 0;
-      }
-
+      value() : data_size_(), type_(LUA_TNONE) {}
       value(lua_State*, int);
       value(const value&);
 
@@ -64,7 +61,7 @@ namespace dromozoa {
       value& operator=(const value&);
 
       bool isnoneornil() const {
-        return data_[0] == 0 && (type_ == LUA_TNONE || type_ == LUA_TNIL);
+        return data_size_ == 0 && (type_ == LUA_TNONE || type_ == LUA_TNIL);
       }
 
       void push(lua_State*) const;
@@ -76,7 +73,8 @@ namespace dromozoa {
       size_t hash() const;
 
     private:
-      char data_[2];
+      uint8_t data_size_;
+      char data_[1];
       int type_;
       union {
         bool boolean_;
@@ -89,7 +87,7 @@ namespace dromozoa {
       void destruct_();
     };
 
-    static const size_t soo_size = sizeof(value) - 1; // 23
+    static const size_t data_size_max = sizeof(value) - 1;
   }
 }
 
@@ -195,8 +193,7 @@ namespace dromozoa {
       }
     }
 
-    value::value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
-      data_[0] = 0;
+    value::value(lua_State* L, int arg) : data_size_(), type_(lua_type(L, arg)) {
       switch (type_) {
         case LUA_TNONE:
         case LUA_TNIL:
@@ -210,10 +207,9 @@ namespace dromozoa {
         case LUA_TSTRING:
           {
             luaX_string_reference string = luaX_to_string(L, arg);
-            if (0 < string.size() && string.size() <= soo_size) {
-              uint8_t size = string.size();
-              data_[0] = size;
-              memcpy(data_ + 1, string.data(), size);
+            if (0 < string.size() && string.size() <= data_size_max) {
+              data_size_ = string.size();
+              memcpy(data_, string.data(), string.size());
             } else {
               new (&string_) std::string(string.data(), string.size());
             }
@@ -247,9 +243,8 @@ namespace dromozoa {
       }
     }
 
-    value::value(const value& that) : type_(LUA_TNONE) {
-      data_[0] = that.data_[0];
-      if (data_[0] == 0) {
+    value::value(const value& that) : data_size_(that.data_size_), type_(LUA_TNONE) {
+      if (data_size_ == 0) {
         type_ = that.type_;
         switch (type_) {
           case LUA_TNONE:
@@ -274,13 +269,12 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        memcpy(data_ + 1, that.data_ + 1, size);
+        memcpy(data_, that.data_, data_size_);
       }
     }
 
     void value::destruct_() {
-      if (data_[0] == 0) {
+      if (data_size_ == 0) {
         switch (type_) {
           case LUA_TSTRING:
             string_.~basic_string();
@@ -290,14 +284,14 @@ namespace dromozoa {
             break;
         }
       }
-      data_[0] = 0;
+      data_size_ = 0;
       type_ = LUA_TNONE;
     }
 
     value& value::operator=(const value& that) {
       destruct_();
-      data_[0] = that.data_[0];
-      if (data_[0] == 0) {
+      data_size_ = that.data_size_;
+      if (data_size_ == 0) {
         type_ = that.type_;
         switch (type_) {
           case LUA_TNONE:
@@ -322,14 +316,13 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        memcpy(data_ + 1, that.data_ + 1, size);
+        memcpy(data_, that.data_, data_size_);
       }
       return *this;
     }
 
     void value::push(lua_State* L) const {
-      if (data_[0] == 0) {
+      if (data_size_ == 0) {
         switch (type_) {
           case LUA_TNONE:
           case LUA_TNIL:
@@ -354,13 +347,12 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        luaX_push(L, luaX_string_reference(data_ + 1, size));
+        luaX_push(L, luaX_string_reference(data_, data_size_));
       }
     }
 
     bool value::operator<(const value& that) const {
-      if (data_[0] == 0 && that.data_[0] == 0) {
+      if (data_size_ == 0 && that.data_size_ == 0) {
         if (type_ != that.type_) {
           return type_ < that.type_;
         }
@@ -382,16 +374,14 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        std::string s1(data_ + 1, static_cast<size_t>(size));
-        size = that.data_[0];
-        std::string s2(that.data_ + 1, static_cast<size_t>(size));
+        std::string s1(data_, static_cast<size_t>(data_size_));
+        std::string s2(that.data_, static_cast<size_t>(that.data_size_));
         return s1 < s2;
       }
     }
 
     bool value::operator==(const value& that) const {
-      if (data_[0] == 0 && that.data_[0] == 0) {
+      if (data_size_ == 0 && that.data_size_ == 0) {
         if (type_ != that.type_) {
           return false;
         }
@@ -413,10 +403,8 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        std::string s1(data_ + 1, static_cast<size_t>(size));
-        size = that.data_[0];
-        std::string s2(that.data_ + 1, static_cast<size_t>(size));
+        std::string s1(data_, static_cast<size_t>(data_size_));
+        std::string s2(that.data_, static_cast<size_t>(that.data_size_));
         return s1 == s2;
       }
     }
@@ -430,7 +418,7 @@ namespace dromozoa {
     }
 
     size_t value::hash() const {
-      if (data_[0] == 0) {
+      if (data_size_ == 0) {
         switch (type_) {
           case LUA_TNONE:
           case LUA_TNIL:
@@ -449,8 +437,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        uint8_t size = data_[0];
-        std::string s1(data_ + 1, static_cast<size_t>(size));
+        std::string s1(data_, static_cast<size_t>(data_size_));
         return hash_combine(LUA_TSTRING, s1);
       }
     }
