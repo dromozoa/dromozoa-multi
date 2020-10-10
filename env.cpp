@@ -17,10 +17,13 @@
 
 #include "common.hpp"
 
+#include <string.h>
+
 #include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 
 #include <dromozoa/bind/mutex.hpp>
 
@@ -43,16 +46,11 @@ namespace dromozoa {
       const char* msg_;
     };
 
-    class value;
-
-    struct table_type {
-      dromozoa::mutex mutex;
-      std::map<value, value> map;
-    };
+    struct table_type;
 
     class value {
     public:
-      value() : type_(LUA_TNONE) {}
+      value() : data_size_(), type_(LUA_TNONE) {}
       value(lua_State*, int);
       value(const value&);
 
@@ -63,14 +61,20 @@ namespace dromozoa {
       value& operator=(const value&);
 
       bool isnoneornil() const {
-        return type_ == LUA_TNONE || type_ == LUA_TNIL;
+        return data_size_ == 0 && (type_ == LUA_TNONE || type_ == LUA_TNIL);
       }
 
       void push(lua_State*) const;
 
       bool operator<(const value&) const;
 
+      bool operator==(const value&) const;
+
+      size_t hash() const;
+
     private:
+      uint8_t data_size_;
+      char data_[1];
       int type_;
       union {
         bool boolean_;
@@ -81,6 +85,29 @@ namespace dromozoa {
       };
 
       void destruct_();
+    };
+
+    static const size_t data_size_max = sizeof(value) - 1;
+  }
+}
+
+namespace std {
+  template <>
+  struct hash<dromozoa::value> {
+    size_t operator()(const dromozoa::value& self) const {
+      return self.hash();
+    }
+  };
+}
+
+namespace dromozoa {
+  namespace {
+    typedef std::map<value, value> map_type;
+    // typedef std::unordered_map<value, value> map_type;
+
+    struct table_type {
+      dromozoa::mutex mutex;
+      map_type map;
     };
 
     std::shared_ptr<table_type> table_to_map(lua_State* L, int arg) {
@@ -119,7 +146,7 @@ namespace dromozoa {
         value k(L, 2);
         {
           lock_guard<> lock(t->mutex);
-          std::map<value, value>::const_iterator i = t->map.find(k);
+          map_type::const_iterator i = t->map.find(k);
           if (i == t->map.end()) {
             luaX_push(L, luaX_nil);
           } else {
@@ -152,7 +179,7 @@ namespace dromozoa {
       }
     }
 
-    value::value(lua_State* L, int arg) : type_(lua_type(L, arg)) {
+    value::value(lua_State* L, int arg) : data_size_(), type_(lua_type(L, arg)) {
       switch (type_) {
         case LUA_TNONE:
         case LUA_TNIL:
@@ -166,7 +193,12 @@ namespace dromozoa {
         case LUA_TSTRING:
           {
             luaX_string_reference string = luaX_to_string(L, arg);
-            new (&string_) std::string(string.data(), string.size());
+            if (0 < string.size() && string.size() <= data_size_max) {
+              data_size_ = string.size();
+              memcpy(data_, string.data(), string.size());
+            } else {
+              new (&string_) std::string(string.data(), string.size());
+            }
           }
           break;
         case LUA_TTABLE:
@@ -197,102 +229,133 @@ namespace dromozoa {
       }
     }
 
-    value::value(const value& that) : type_(that.type_) {
-      switch (type_) {
-        case LUA_TNONE:
-        case LUA_TNIL:
-          break;
-        case LUA_TBOOLEAN:
-          boolean_ = that.boolean_;
-          break;
-        case LUA_TNUMBER:
-          number_ = that.number_;
-          break;
-        case LUA_TSTRING:
-          new (&string_) std::string(that.string_);
-          break;
-        case LUA_TTABLE:
-          new (&table_) std::shared_ptr<table_type>(that.table_);
-          break;
-        case LUA_TLIGHTUSERDATA:
-          userdata_ = that.userdata_;
-          break;
-        default:
-          throw std::logic_error("unreachable code");
+    void map_size(lua_State* L) {
+      try {
+        std::shared_ptr<table_type> t = *map_check(L, 1);
+        {
+          lock_guard<> lock(t->mutex);
+          luaX_push(L, t->map.size());
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
+    }
+
+    value::value(const value& that) : data_size_(that.data_size_), type_(that.type_) {
+      if (data_size_ == 0) {
+        switch (type_) {
+          case LUA_TNONE:
+          case LUA_TNIL:
+            break;
+          case LUA_TBOOLEAN:
+            boolean_ = that.boolean_;
+            break;
+          case LUA_TNUMBER:
+            number_ = that.number_;
+            break;
+          case LUA_TSTRING:
+            new (&string_) std::string(that.string_);
+            break;
+          case LUA_TTABLE:
+            new (&table_) std::shared_ptr<table_type>(that.table_);
+            break;
+          case LUA_TLIGHTUSERDATA:
+            userdata_ = that.userdata_;
+            break;
+          default:
+            throw std::logic_error("unreachable code");
+        }
+      } else {
+        memcpy(data_, that.data_, data_size_);
       }
     }
 
     void value::destruct_() {
-      switch (type_) {
-        case LUA_TSTRING:
-          string_.~basic_string();
-          break;
-        case LUA_TTABLE:
-          table_.~shared_ptr();
-          break;
+      if (data_size_ == 0) {
+        switch (type_) {
+          case LUA_TSTRING:
+            string_.~basic_string();
+            break;
+          case LUA_TTABLE:
+            table_.~shared_ptr();
+            break;
+        }
       }
+      data_size_ = 0;
       type_ = LUA_TNONE;
     }
 
     value& value::operator=(const value& that) {
       destruct_();
+      data_size_ = that.data_size_;
       type_ = that.type_;
-      switch (type_) {
-        case LUA_TNONE:
-        case LUA_TNIL:
-          break;
-        case LUA_TBOOLEAN:
-          boolean_ = that.boolean_;
-          break;
-        case LUA_TNUMBER:
-          number_ = that.number_;
-          break;
-        case LUA_TSTRING:
-          new (&string_) std::string(that.string_);
-          break;
-        case LUA_TTABLE:
-          new (&table_) std::shared_ptr<table_type>(that.table_);
-          break;
-        case LUA_TLIGHTUSERDATA:
-          userdata_ = that.userdata_;
-          break;
-        default:
-          throw std::logic_error("unreachable code");
+      if (data_size_ == 0) {
+        switch (type_) {
+          case LUA_TNONE:
+          case LUA_TNIL:
+            break;
+          case LUA_TBOOLEAN:
+            boolean_ = that.boolean_;
+            break;
+          case LUA_TNUMBER:
+            number_ = that.number_;
+            break;
+          case LUA_TSTRING:
+            new (&string_) std::string(that.string_);
+            break;
+          case LUA_TTABLE:
+            new (&table_) std::shared_ptr<table_type>(that.table_);
+            break;
+          case LUA_TLIGHTUSERDATA:
+            userdata_ = that.userdata_;
+            break;
+          default:
+            throw std::logic_error("unreachable code");
+        }
+      } else {
+        memcpy(data_, that.data_, data_size_);
       }
       return *this;
     }
 
     void value::push(lua_State* L) const {
-      switch (type_) {
-        case LUA_TNONE:
-        case LUA_TNIL:
-          luaX_push(L, luaX_nil);
-          break;
-        case LUA_TBOOLEAN:
-          luaX_push(L, boolean_);
-          break;
-        case LUA_TNUMBER:
-          luaX_push(L, number_);
-          break;
-        case LUA_TSTRING:
-          luaX_push(L, string_);
-          break;
-        case LUA_TTABLE:
-          map_new(L, table_);
-          break;
-        case LUA_TLIGHTUSERDATA:
-          lua_pushlightuserdata(L, userdata_);
-          break;
-        default:
-          throw std::logic_error("unreachable code");
+      if (data_size_ == 0) {
+        switch (type_) {
+          case LUA_TNONE:
+          case LUA_TNIL:
+            luaX_push(L, luaX_nil);
+            break;
+          case LUA_TBOOLEAN:
+            luaX_push(L, boolean_);
+            break;
+          case LUA_TNUMBER:
+            luaX_push(L, number_);
+            break;
+          case LUA_TSTRING:
+            luaX_push(L, string_);
+            break;
+          case LUA_TTABLE:
+            map_new(L, table_);
+            break;
+          case LUA_TLIGHTUSERDATA:
+            lua_pushlightuserdata(L, userdata_);
+            break;
+          default:
+            throw std::logic_error("unreachable code");
+        }
+      } else {
+        luaX_push(L, luaX_string_reference(data_, data_size_));
       }
     }
 
     bool value::operator<(const value& that) const {
-      if (type_ != that.type_) {
-        return type_ < that.type_;
+      int type = data_size_ == 0 ? type_ : LUA_TSTRING;
+      int that_type = that.data_size_ == 0 ? that.type_ : LUA_TSTRING;
+
+      if (type != that_type) {
+        return type < that_type;
       }
-      switch (type_) {
+      switch (type) {
         case LUA_TNONE:
         case LUA_TNIL:
           return false;
@@ -301,9 +364,25 @@ namespace dromozoa {
         case LUA_TNUMBER:
           return number_ < that.number_;
         case LUA_TSTRING:
-          return string_ < that.string_;
+          {
+            std::string string;
+            if (data_size_ == 0) {
+              string = string_;
+            } else {
+              string = std::string(data_, data_size_);
+            }
+
+            std::string that_string;
+            if (that.data_size_ == 0) {
+              that_string = that.string_;
+            } else {
+              that_string = std::string(that.data_, that.data_size_);
+            }
+
+            return string < that_string;
+          }
         case LUA_TTABLE:
-          return table_ < that.table_;
+          return table_ < that.table_; // raw compare
         case LUA_TLIGHTUSERDATA:
           return userdata_ < that.userdata_;
         default:
@@ -311,15 +390,90 @@ namespace dromozoa {
       }
     }
 
+    bool value::operator==(const value& that) const {
+      int type = data_size_ == 0 ? type_ : LUA_TSTRING;
+      int that_type = that.data_size_ == 0 ? that.type_ : LUA_TSTRING;
+
+      if (type != that_type) {
+        return false;
+      }
+
+      switch (type_) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+          return true;
+        case LUA_TBOOLEAN:
+          return boolean_ == that.boolean_;
+        case LUA_TNUMBER:
+          return number_ == that.number_;
+        case LUA_TSTRING:
+          {
+            std::string string;
+            if (data_size_ == 0) {
+              string = string_;
+            } else {
+              string = std::string(data_, data_size_);
+            }
+
+            std::string that_string;
+            if (that.data_size_ == 0) {
+              that_string = that.string_;
+            } else {
+              that_string = std::string(that.data_, that.data_size_);
+            }
+
+            return string == that_string;
+          }
+        case LUA_TTABLE:
+          return table_ == that.table_; // raw equal
+        case LUA_TLIGHTUSERDATA:
+          return userdata_ == that.userdata_;
+        default:
+          throw std::logic_error("unreachable code");
+      }
+    }
+
+    template <class T>
+    inline size_t hash_combine(size_t type, const T& value) {
+      size_t u = std::hash<size_t>()(type);
+      size_t v = std::hash<T>()(value);
+      u ^= v + 0x9E3779B9 + (u << 6) + (u >> 2);
+      return u;
+    }
+
+    size_t value::hash() const {
+      if (data_size_ == 0) {
+        switch (type_) {
+          case LUA_TNONE:
+          case LUA_TNIL:
+            return hash_combine(LUA_TNIL, static_cast<const void*>(nullptr));
+          case LUA_TBOOLEAN:
+            return hash_combine(LUA_TBOOLEAN, boolean_);
+          case LUA_TNUMBER:
+            return hash_combine(LUA_TNUMBER, number_);
+          case LUA_TSTRING:
+            return hash_combine(LUA_TSTRING, string_);
+          case LUA_TTABLE:
+            return hash_combine(LUA_TTABLE, static_cast<const void*>(table_.get())); // raw pointer
+          case LUA_TLIGHTUSERDATA:
+            return hash_combine(LUA_TTABLE, static_cast<const void*>(userdata_));
+          default:
+            throw std::logic_error("unreachable code");
+        }
+      } else {
+        return hash_combine(LUA_TSTRING, std::string(data_, data_size_));
+      }
+    }
+
     mutex env_mutex;
-    std::map<value, value> env_map;
+    map_type env_map;
 
     void env_get(lua_State* L, int arg) {
       try {
         value k(L, arg);
         {
           lock_guard<> lock(env_mutex);
-          std::map<value, value>::const_iterator i = env_map.find(k);
+          map_type::const_iterator i = env_map.find(k);
           if (i == env_map.end()) {
             luaX_push(L, luaX_nil);
           } else {
@@ -389,5 +543,6 @@ namespace dromozoa {
     lua_pop(L, 1);
 
     luaX_set_field(L, -1, "map_to_table", map_to_table);
+    luaX_set_field(L, -1, "map_size", map_size);
   }
 }
