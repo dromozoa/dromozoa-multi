@@ -27,9 +27,6 @@
 
 #include <dromozoa/bind/mutex.hpp>
 
-#undef DROMOZOA_UNORDERD_MAP
-#undef DROMOZOA_UNORDERD_MAP_RESERVE
-
 namespace dromozoa {
   namespace {
     class value_error {
@@ -117,20 +114,6 @@ namespace dromozoa {
       int index = luaX_abs_index(L, arg);
       std::shared_ptr<table_type> result = std::make_shared<table_type>();
 
-/*
-      size_t size = 0;
-      luaX_push(L, luaX_nil);
-      while (lua_next(L, index)) {
-        value k(L, -2);
-        value v(L, -1);
-        if (!k.isnoneornil() && !v.isnoneornil()) {
-          ++size;
-        }
-        lua_pop(L, 1);
-      }
-      result->map.reserve(size);
-*/
-
       luaX_push(L, luaX_nil);
       while (lua_next(L, index)) {
         value k(L, -2);
@@ -212,6 +195,7 @@ namespace dromozoa {
             luaX_string_reference string = luaX_to_string(L, arg);
             if (0 < string.size() && string.size() <= data_size_max) {
               data_size_ = string.size();
+              memset(data_, 0, data_size_max);
               memcpy(data_, string.data(), string.size());
             } else {
               new (&string_) std::string(string.data(), string.size());
@@ -246,9 +230,8 @@ namespace dromozoa {
       }
     }
 
-    value::value(const value& that) : data_size_(that.data_size_), type_(LUA_TNONE) {
+    value::value(const value& that) : data_size_(that.data_size_), type_(that.type_) {
       if (data_size_ == 0) {
-        type_ = that.type_;
         switch (type_) {
           case LUA_TNONE:
           case LUA_TNIL:
@@ -272,6 +255,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
+        memset(data_, 0, data_size_max);
         memcpy(data_, that.data_, data_size_);
       }
     }
@@ -294,8 +278,8 @@ namespace dromozoa {
     value& value::operator=(const value& that) {
       destruct_();
       data_size_ = that.data_size_;
+      type_ = that.type_;
       if (data_size_ == 0) {
-        type_ = that.type_;
         switch (type_) {
           case LUA_TNONE:
           case LUA_TNIL:
@@ -319,6 +303,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
+        memset(data_, 0, data_size_max);
         memcpy(data_, that.data_, data_size_);
       }
       return *this;
@@ -377,9 +362,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        std::string s1(data_, static_cast<size_t>(data_size_));
-        std::string s2(that.data_, static_cast<size_t>(that.data_size_));
-        return s1 < s2;
+        return memcmp(data_, that.data_, data_size_max) < 0;
       }
     }
 
@@ -406,9 +389,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        std::string s1(data_, static_cast<size_t>(data_size_));
-        std::string s2(that.data_, static_cast<size_t>(that.data_size_));
-        return s1 == s2;
+        return memcmp(data_, that.data_, data_size_max) == 0;
       }
     }
 
@@ -440,8 +421,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        std::string s1(data_, static_cast<size_t>(data_size_));
-        return hash_combine(LUA_TSTRING, s1);
+        return hash_combine(LUA_TSTRING, std::string(data_, data_size_));
       }
     }
 
