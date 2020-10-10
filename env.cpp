@@ -27,6 +27,9 @@
 
 #include <dromozoa/bind/mutex.hpp>
 
+#undef DROMOZOA_UNORDERD_MAP
+#undef DROMOZOA_UNORDERD_MAP_RESERVE
+
 namespace dromozoa {
   namespace {
     class value_error {
