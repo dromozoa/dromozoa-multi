@@ -104,8 +104,8 @@ namespace std {
 
 namespace dromozoa {
   namespace {
-    typedef std::map<value, value> map_type;
-    // typedef std::unordered_map<value, value> map_type;
+    // typedef std::map<value, value> map_type;
+    typedef std::unordered_map<value, value> map_type;
 
     struct table_type {
       dromozoa::mutex mutex;
@@ -115,6 +115,20 @@ namespace dromozoa {
     std::shared_ptr<table_type> table_to_map(lua_State* L, int arg) {
       int index = luaX_abs_index(L, arg);
       std::shared_ptr<table_type> result = std::make_shared<table_type>();
+
+/*
+      size_t size = 0;
+      luaX_push(L, luaX_nil);
+      while (lua_next(L, index)) {
+        value k(L, -2);
+        value v(L, -1);
+        if (!k.isnoneornil() && !v.isnoneornil()) {
+          ++size;
+        }
+        lua_pop(L, 1);
+      }
+      result->map.reserve(size);
+*/
 
       luaX_push(L, luaX_nil);
       while (lua_next(L, index)) {
