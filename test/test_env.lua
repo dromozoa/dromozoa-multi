@@ -127,3 +127,19 @@ print(env.m.bar[1][1][1])
 local t = multi.map_to_table(env.m)
 print(t.foo)
 print(t.bar)
+
+env.x = {}
+local x = env.x
+
+for i = 1, 32 do
+  local s = ("x"):rep(i)
+  x[s] = s
+end
+
+for i = 1, 32 do
+  local s = ("x"):rep(i)
+  if verbose then
+    print(i, x[s], s)
+  end
+  assert(x[s] == s)
+end

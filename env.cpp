@@ -362,7 +362,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        return memcmp(data_, that.data_, data_size_max) < 0;
+        return std::string(data_, data_size_) < std::string(that.data_, that.data_size_);
       }
     }
 
@@ -389,7 +389,7 @@ namespace dromozoa {
             throw std::logic_error("unreachable code");
         }
       } else {
-        return memcmp(data_, that.data_, data_size_max) == 0;
+        return std::string(data_, data_size_) == std::string(that.data_, that.data_size_);
       }
     }
 
