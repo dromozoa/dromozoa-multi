@@ -127,4 +127,3 @@ print(env.m.bar[1][1][1])
 local t = multi.map_to_table(env.m)
 print(t.foo)
 print(t.bar)
-
