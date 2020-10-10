@@ -128,3 +128,33 @@ local t = multi.map_to_table(env.m)
 print(t.foo)
 print(t.bar)
 
+env.x = {}
+local x = env.x
+
+for i = 1, 64 do
+  local s = ("x"):rep(i)
+  local t = ("y"):rep(i)
+  x[s] = s
+  x[t] = t
+end
+
+for i = 1, 64 do
+  local s = ("x"):rep(i)
+  local t = ("y"):rep(i)
+  assert(x[s] == s)
+  assert(x[t] == t)
+end
+
+assert(multi.map_size(x) == 128)
+x[0] = "small object"
+assert(multi.map_size(x) == 129)
+assert(x[0] == "small object")
+
+local y = multi.map_to_table(x)
+
+for i = 1, 64 do
+  local s = ("x"):rep(i)
+  local t = ("y"):rep(i)
+  assert(y[s] == s)
+  assert(y[t] == t)
+end
