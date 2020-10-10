@@ -229,6 +229,18 @@ namespace dromozoa {
       }
     }
 
+    void map_size(lua_State* L) {
+      try {
+        std::shared_ptr<table_type> t = *map_check(L, 1);
+        {
+          lock_guard<> lock(t->mutex);
+          luaX_push(L, t->map.size());
+        }
+      } catch (const value_error& e) {
+        luaL_argerror(L, e.arg(), e.msg());
+      }
+    }
+
     value::value(const value& that) : data_size_(that.data_size_), type_(that.type_) {
       if (data_size_ == 0) {
         switch (type_) {
@@ -531,5 +543,6 @@ namespace dromozoa {
     lua_pop(L, 1);
 
     luaX_set_field(L, -1, "map_to_table", map_to_table);
+    luaX_set_field(L, -1, "map_size", map_size);
   }
 }

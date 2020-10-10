@@ -145,6 +145,11 @@ for i = 1, 64 do
   assert(x[t] == t)
 end
 
+assert(multi.map_size(x) == 128)
+x[0] = "small object"
+assert(multi.map_size(x) == 129)
+assert(x[0] == "small object")
+
 local y = multi.map_to_table(x)
 
 for i = 1, 64 do
